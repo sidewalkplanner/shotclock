@@ -18,6 +18,7 @@ from shotclock.ingest.workflow import WorkflowMapping, read_workflow
 from shotclock.ledger import Jurisdiction
 from shotclock.metrics import elapsed_benchmark
 from shotclock.rules import RuleLibrary
+from shotclock.status import build_status, render_html, to_json
 from shotclock.store import Store
 
 DEFAULT_DB = "shotclock.duckdb"
@@ -117,6 +118,18 @@ def cmd_clocks(args: argparse.Namespace) -> None:
     _write_rows(rows, args.out)
 
 
+def cmd_status_page(args: argparse.Namespace) -> None:
+    as_of = datetime.fromisoformat(args.as_of) if args.as_of else datetime.now()
+    with Store(args.db) as store:
+        summary = build_status(store, args.jurisdiction, RuleLibrary.load(), as_of)
+    args.out.mkdir(parents=True, exist_ok=True)
+    (args.out / "index.html").write_text(render_html(summary))
+    (args.out / "status.json").write_text(to_json(summary))
+    print(f"{summary.pending} pending applications -> {args.out}/index.html, status.json")
+    if not summary.rules_verified:
+        print("# rules UNVERIFIED: page shows a preview banner", file=sys.stderr)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="shotclock", description=__doc__)
     sub = p.add_subparsers(dest="command", required=True)
@@ -165,6 +178,13 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--out", type=Path)
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_clocks)
+
+    sp = sub.add_parser("status-page", help="public status page for pending applications")
+    sp.add_argument("--jurisdiction", required=True)
+    sp.add_argument("--out", type=Path, default=Path("data/out/status"))
+    sp.add_argument("--as-of", help="ISO date or datetime; default now")
+    sp.add_argument("--db", default=DEFAULT_DB)
+    sp.set_defaults(func=cmd_status_page)
     return p
 
 
