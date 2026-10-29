@@ -58,7 +58,12 @@ class Jurisdiction(BaseModel):
     jurisdiction: str  # slug plus state, e.g. "boulder-co"
     name: str
     state: str
+    # Facts some laws scope on (Georgia: 250+ permits a year; Arizona: 30,000+ people).
+    population: int | None = None
     permits_per_year: int | None = None
+
+
+JURISDICTION_FACTS = ("population", "permits_per_year")
 
 
 class Case(BaseModel):

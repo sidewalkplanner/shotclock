@@ -29,14 +29,38 @@ class Store:
     # -- writes ---------------------------------------------------------------------------
 
     def upsert_jurisdiction(self, j: Jurisdiction) -> None:
+        """Insert or update. Facts left as None keep their stored value, so a re-import that
+        does not know a city's population never erases it."""
         self.con.execute(
             """
-            INSERT INTO jurisdictions VALUES (?, ?, ?, ?)
+            INSERT INTO jurisdictions (jurisdiction, name, state, permits_per_year, population)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT (jurisdiction) DO UPDATE SET
-                name = excluded.name, state = excluded.state,
-                permits_per_year = excluded.permits_per_year
+                name = excluded.name,
+                state = excluded.state,
+                permits_per_year = coalesce(excluded.permits_per_year,
+                                            jurisdictions.permits_per_year),
+                population = coalesce(excluded.population, jurisdictions.population)
             """,
-            [j.jurisdiction, j.name, j.state, j.permits_per_year],
+            [j.jurisdiction, j.name, j.state, j.permits_per_year, j.population],
+        )
+
+    def get_jurisdiction(self, jurisdiction: str) -> Jurisdiction:
+        row = self.con.execute(
+            """
+            SELECT jurisdiction, name, state, population, permits_per_year
+            FROM jurisdictions WHERE jurisdiction = ?
+            """,
+            [jurisdiction],
+        ).fetchone()
+        if row is None:
+            raise KeyError(jurisdiction)
+        return Jurisdiction(
+            jurisdiction=row[0],
+            name=row[1],
+            state=row[2],
+            population=row[3],
+            permits_per_year=row[4],
         )
 
     def write_cases(self, rows: Iterable[tuple[Case, list[CaseEvent]]]) -> int:

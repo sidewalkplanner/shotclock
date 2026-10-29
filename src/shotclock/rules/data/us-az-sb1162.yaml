@@ -9,8 +9,8 @@ checks:
   - claim: Completeness determination is due within 30 days of submittal
   - claim: Decision on a zoning application is due within 180 days
   - claim: The 180 days start once the application is deemed administratively complete
-  - claim: Applies only to municipalities with a population of 30,000 or more
-    note: Not encoded per jurisdiction yet; check before loading a smaller city.
+  - claim: Applies only to non-tribal municipalities with a population of 30,000 or more
+    note: Encoded as a jurisdiction condition. Confirm which census figure counts.
   - claim: The applicant's completeness resubmittal is reviewed within 15 days
     note: Not yet encoded.
   - claim: A one-time 30-day extension for extenuating circumstances, and further 30-day
@@ -30,6 +30,11 @@ sources:
   - https://www.yourvalley.net/cave-creek-carefree-independent/stories/clock-will-be-ticking-on-development,538438
 applies_to:
   case_types: [rezoning, zoning_amendment, zoning_variance, conditional_use]
+  conditions:
+    - scope: jurisdiction
+      attribute: population
+      op: ">="
+      value: 30000
 day_basis: calendar
 pause_when_applicant_holds: true
 clocks:

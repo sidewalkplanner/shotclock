@@ -76,3 +76,35 @@ def test_ledger_csv_to_clock_end_to_end():
     assert process.review_cycles == 2
     assert round(process.hours_by_holder[Holder.APPLICANT]) == 19 * 24 - 5
     assert set(process.hours_by_department) == {"unassigned", "zoning"}
+
+
+def test_reimport_keeps_known_jurisdiction_facts():
+    with Store() as store:
+        store.upsert_jurisdiction(
+            Jurisdiction(
+                jurisdiction="elk-valley-co",
+                name="Elk Valley",
+                state="CO",
+                population=41_000,
+                permits_per_year=900,
+            )
+        )
+        store.upsert_jurisdiction(ELK_VALLEY)  # what an ingest command sends: no facts
+        j = store.get_jurisdiction("elk-valley-co")
+    assert (j.population, j.permits_per_year) == (41_000, 900)
+
+
+def test_schema_upgrades_an_older_database(tmp_path):
+    import duckdb
+
+    path = tmp_path / "old.duckdb"
+    con = duckdb.connect(str(path))
+    con.execute(
+        "CREATE TABLE jurisdictions (jurisdiction TEXT PRIMARY KEY, name TEXT NOT NULL, "
+        "state TEXT NOT NULL, permits_per_year INTEGER)"
+    )
+    con.execute("INSERT INTO jurisdictions VALUES ('a-co', 'A', 'CO', 300)")
+    con.close()
+    with Store(path) as store:
+        j = store.get_jurisdiction("a-co")
+    assert (j.permits_per_year, j.population) == (300, None)

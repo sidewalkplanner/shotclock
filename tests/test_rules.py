@@ -3,7 +3,8 @@ from conftest import case, dt, events
 from pydantic import ValidationError
 
 from shotclock.clock import ClockStatus, evaluate_case
-from shotclock.rules import Check, CheckStatus, Rule
+from shotclock.ledger import Jurisdiction
+from shotclock.rules import Check, CheckStatus, Condition, Rule
 
 MINIMAL = {
     "id": "us-xx-test",
@@ -62,14 +63,37 @@ def test_attribute_of_wrong_type_is_undetermined(library):
     ]
 
 
+def az_city(population):
+    return Jurisdiction(jurisdiction="mesa-az", name="Mesa", state="AZ", population=population)
+
+
 def test_arizona_zoning_decision_runs_from_completeness(library):
     evs = events(("submitted", "2026-01-05"), ("complete", "2026-02-02"))
-    r = {
-        x.clock_id: x for x in evaluate_case(case("AZ", "rezoning"), evs, library, dt("2026-03-04"))
-    }
+    as_of = dt("2026-03-04")
+    results = evaluate_case(
+        case("AZ", "rezoning"), evs, library, as_of, jurisdiction=az_city(500_000)
+    )
+    r = {x.clock_id: x for x in results}
     assert (r["completeness"].days_used, r["completeness"].status) == (28, ClockStatus.MET)
     assert (r["decision"].days_used, r["decision"].limit_days) == (30, 180)
-    assert evaluate_case(case("AZ", "single_family_new"), evs, library, dt("2026-03-04")) == []
+    not_zoning = case("AZ", "single_family_new")
+    assert evaluate_case(not_zoning, evs, library, as_of, jurisdiction=az_city(500_000)) == []
+
+
+def test_arizona_skips_small_cities_and_flags_unknown_population(library):
+    evs = events(("submitted", "2026-01-05"))
+    rezoning = case("AZ", "rezoning")
+    assert (
+        evaluate_case(rezoning, evs, library, dt("2026-02-01"), jurisdiction=az_city(12_000)) == []
+    )
+    assert library.undetermined(rezoning, dt("2026-01-05").date(), az_city(12_000)) == []
+    ((rule, missing),) = library.undetermined(rezoning, dt("2026-01-05").date(), az_city(None))
+    assert (rule.id, missing) == ("us-az-sb1162", ["jurisdiction.population"])
+
+
+def test_jurisdiction_conditions_only_take_known_facts():
+    with pytest.raises(ValidationError, match="jurisdiction conditions"):
+        Condition(scope="jurisdiction", attribute="vibes", op=">=", value=1)
 
 
 def test_california_small_residential_only(library):

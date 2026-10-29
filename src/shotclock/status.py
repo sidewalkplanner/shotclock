@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta
 from html import escape
 
-from shotclock.clock import OPEN_STATUSES, ClockResult, ClockStatus, evaluate_case
+from shotclock.clock import OPEN_STATUSES, ClockStatus, describe, evaluate_case
 from shotclock.ledger import CLOSING_EVENTS, EventType, Holder, sort_events, submitted_at
 from shotclock.rules import RuleLibrary
 from shotclock.store import Store
@@ -66,20 +66,10 @@ class StatusSummary:
     rows: list[StatusRow]
 
 
-def _describe(r: ClockResult) -> str:
-    round_ = f", round {r.cycle}" if r.cycle else ""
-    return f"{r.label}{round_}: day {r.days_used} of {r.limit_days} ({r.day_basis.value} days)"
-
-
 def build_status(
     store: Store, jurisdiction: str, library: RuleLibrary, as_of: datetime
 ) -> StatusSummary:
-    name = jurisdiction
-    row = store.con.execute(
-        "SELECT name FROM jurisdictions WHERE jurisdiction = ?", [jurisdiction]
-    ).fetchone()
-    if row:
-        name = row[0]
+    j = store.get_jurisdiction(jurisdiction)
 
     rows: list[StatusRow] = []
     recent_met = recent_missed = 0
@@ -89,7 +79,7 @@ def build_status(
         events = sort_events(e for e in events if e.at <= as_of)
         if not events:
             continue
-        clocks = evaluate_case(case, events, library, as_of)
+        clocks = evaluate_case(case, events, library, as_of, jurisdiction=j)
         verified = verified and all(c.rule_verified for c in clocks)
         for c in clocks:
             if c.stopped_at and c.stopped_at >= recent_from:
@@ -113,7 +103,7 @@ def build_status(
                 stage=STAGE_LABELS.get(last.event, last.event.value),
                 stage_since=last.at.date(),
                 waiting_on=WAITING_ON.get(last.holder, "Not recorded"),
-                clock=_describe(top) if top else None,
+                clock=describe(top) if top else None,
                 clock_status=top.status.value if top else None,
                 due_date=top.due_date if top else None,
             )
@@ -126,7 +116,7 @@ def build_status(
         by_status[key] = by_status.get(key, 0) + 1
     return StatusSummary(
         jurisdiction=jurisdiction,
-        name=name,
+        name=j.name,
         as_of=as_of,
         pending=len(rows),
         by_status=by_status,

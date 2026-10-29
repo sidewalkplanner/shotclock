@@ -12,6 +12,9 @@ CREATE TABLE IF NOT EXISTS jurisdictions (
     permits_per_year INTEGER                    -- drives thresholds like Georgia's 250
 );
 
+-- Added after the first release; IF NOT EXISTS upgrades older local databases in place.
+ALTER TABLE jurisdictions ADD COLUMN IF NOT EXISTS population INTEGER;
+
 CREATE TABLE IF NOT EXISTS cases (
     case_id         TEXT NOT NULL,
     jurisdiction    TEXT NOT NULL,

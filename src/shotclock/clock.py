@@ -20,6 +20,7 @@ from shotclock.ledger import (
     CaseEvent,
     EventType,
     Holder,
+    Jurisdiction,
     holder_intervals,
     sort_events,
     submitted_at,
@@ -61,6 +62,12 @@ class ClockResult:
     penalty_estimate: float | None  # share of the fee forfeited, where the law is arithmetic
     assumes_city_time: bool
     rule_verified: bool
+
+
+def describe(r: ClockResult) -> str:
+    """Plain-language position on the clock, e.g. "Plan review, round 2: day 16 of 20"."""
+    round_ = f", round {r.cycle}" if r.cycle else ""
+    return f"{r.label}{round_}: day {r.days_used} of {r.limit_days} ({r.day_basis.value} days)"
 
 
 def _first(events: list[CaseEvent], types: Iterable[EventType], after: int) -> int | None:
@@ -179,14 +186,19 @@ def evaluate_case(
     library: RuleLibrary,
     as_of: datetime,
     at_risk_fraction: float = 0.2,
+    jurisdiction: Jurisdiction | None = None,
 ) -> list[ClockResult]:
-    """Every statutory clock that applies to this case, as of ``as_of``."""
+    """Every statutory clock that applies to this case, as of ``as_of``.
+
+    Pass ``jurisdiction`` so rules scoped on jurisdiction facts (population, permit volume)
+    can be decided; without it those rules are treated as undetermined and skipped.
+    """
     ordered = sort_events(events)
     submitted = submitted_at(ordered)
     if submitted is None:
         return []
     out: list[ClockResult] = []
-    for rule in library.applicable(case, submitted.date()):
+    for rule in library.applicable(case, submitted.date(), jurisdiction):
         for clock in rule.clocks:
             out.extend(evaluate_clock(case, ordered, rule, clock, as_of, at_risk_fraction))
     return out

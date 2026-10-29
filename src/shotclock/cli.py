@@ -93,6 +93,31 @@ def cmd_ingest_workflow(args: argparse.Namespace) -> None:
     _print_report(report)
 
 
+def cmd_jurisdiction(args: argparse.Namespace) -> None:
+    with Store(args.db) as store:
+        if args.name or args.state or args.population is not None or args.permits is not None:
+            try:
+                current = store.get_jurisdiction(args.jurisdiction)
+            except KeyError:
+                if not (args.name and args.state):
+                    sys.exit("new jurisdiction: --name and --state are required")
+                current = None
+            store.upsert_jurisdiction(
+                Jurisdiction(
+                    jurisdiction=args.jurisdiction,
+                    name=args.name or current.name,
+                    state=(args.state or current.state).upper(),
+                    population=args.population,
+                    permits_per_year=args.permits,
+                )
+            )
+        j = store.get_jurisdiction(args.jurisdiction)
+    print(
+        f"{j.jurisdiction}: {j.name}, {j.state}; population {j.population or 'unknown'}; "
+        f"permits/year {j.permits_per_year or 'unknown'}"
+    )
+
+
 def cmd_benchmark(args: argparse.Namespace) -> None:
     with Store(args.db) as store:
         rows = elapsed_benchmark(store, args.jurisdiction, min_cases=args.min_cases)
@@ -105,6 +130,7 @@ def cmd_clocks(args: argparse.Namespace) -> None:
     library = RuleLibrary.load()
     rows = []
     with Store(args.db) as store:
+        j = store.get_jurisdiction(args.jurisdiction)
         cases = (
             [store.get_case(args.jurisdiction, args.case)]
             if args.case
@@ -113,10 +139,10 @@ def cmd_clocks(args: argparse.Namespace) -> None:
         undetermined: dict[tuple[str, str], int] = {}
         for case, events in cases:
             if submitted := submitted_at(events):
-                for rule, attrs in library.undetermined(case, submitted.date()):
+                for rule, attrs in library.undetermined(case, submitted.date(), j):
                     for attr in attrs:
                         undetermined[(rule.id, attr)] = undetermined.get((rule.id, attr), 0) + 1
-            for r in evaluate_case(case, events, library, as_of):
+            for r in evaluate_case(case, events, library, as_of, jurisdiction=j):
                 if args.open_only and r.status not in OPEN_STATUSES:
                     continue
                 rows.append(
@@ -174,6 +200,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--name")
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_ingest_workflow)
+
+    sp = sub.add_parser("jurisdiction", help="show or set a jurisdiction's facts")
+    sp.add_argument("jurisdiction")
+    sp.add_argument("--name")
+    sp.add_argument("--state")
+    sp.add_argument("--population", type=int)
+    sp.add_argument("--permits-per-year", dest="permits", type=int)
+    sp.add_argument("--db", default=DEFAULT_DB)
+    sp.set_defaults(func=cmd_jurisdiction)
 
     sp = sub.add_parser("benchmark", help="elapsed-time percentiles by case type and year")
     sp.add_argument("--jurisdiction", required=True)

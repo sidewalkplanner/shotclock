@@ -22,7 +22,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from shotclock.days import DayBasis
-from shotclock.ledger import Case, EventType
+from shotclock.ledger import JURISDICTION_FACTS, Case, EventType, Jurisdiction
 
 _OPS = {
     ">=": operator.ge,
@@ -35,19 +35,41 @@ _OPS = {
 }
 
 
+class Scope(StrEnum):
+    CASE = "case"  # a case attribute, e.g. affordable_share
+    JURISDICTION = "jurisdiction"  # a jurisdiction fact, e.g. population
+
+
 class Condition(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     attribute: str
     op: str = Field(pattern=r"^(>=|>|<=|<|==|!=|in)$")
     value: Any
+    scope: Scope = Scope.CASE
 
-    def holds(self, case: Case) -> bool | None:
-        """None when the case lacks the attribute, so applicability cannot be decided."""
-        if self.attribute not in case.attributes:
+    @model_validator(mode="after")
+    def _check(self) -> Condition:
+        if self.scope is Scope.JURISDICTION and self.attribute not in JURISDICTION_FACTS:
+            raise ValueError(f"jurisdiction conditions take one of {JURISDICTION_FACTS}")
+        return self
+
+    @property
+    def label(self) -> str:
+        return (
+            f"jurisdiction.{self.attribute}" if self.scope is Scope.JURISDICTION else self.attribute
+        )
+
+    def holds(self, case: Case, jurisdiction: Jurisdiction | None = None) -> bool | None:
+        """None when the fact is missing or unusable, so applicability cannot be decided."""
+        if self.scope is Scope.JURISDICTION:
+            actual = getattr(jurisdiction, self.attribute) if jurisdiction else None
+        else:
+            actual = case.attributes.get(self.attribute)
+        if actual is None:
             return None
         try:
-            return bool(_OPS[self.op](case.attributes[self.attribute], self.value))
+            return bool(_OPS[self.op](actual, self.value))
         except TypeError:  # e.g. a text value compared with a number
             return None
 
@@ -58,17 +80,17 @@ class AppliesTo(BaseModel):
     case_types: list[str] = Field(default_factory=lambda: ["*"])
     conditions: list[Condition] = Field(default_factory=list)
 
-    def matches(self, case: Case) -> bool | None:
-        """True or False, or None when a condition's attribute is missing from the case."""
+    def matches(self, case: Case, jurisdiction: Jurisdiction | None = None) -> bool | None:
+        """True or False, or None when a fact a condition needs is missing."""
         if "*" not in self.case_types and case.case_type not in self.case_types:
             return False
-        results = [c.holds(case) for c in self.conditions]
+        results = [c.holds(case, jurisdiction) for c in self.conditions]
         if False in results:
             return False
         return None if None in results else True
 
-    def missing_attributes(self, case: Case) -> list[str]:
-        return [c.attribute for c in self.conditions if c.holds(case) is None]
+    def missing(self, case: Case, jurisdiction: Jurisdiction | None = None) -> list[str]:
+        return [c.label for c in self.conditions if c.holds(case, jurisdiction) is None]
 
 
 class ClockKind(StrEnum):
@@ -196,20 +218,24 @@ class RuleLibrary:
     def for_state(self, state: str) -> list[Rule]:
         return [r for r in self.rules if r.state == state.upper()]
 
-    def applicable(self, case: Case, submitted_on: date) -> list[Rule]:
+    def applicable(
+        self, case: Case, submitted_on: date, jurisdiction: Jurisdiction | None = None
+    ) -> list[Rule]:
         """Rules covering this case, in the version in force on its submission date."""
         return [
             r
             for r in self.for_state(case.state)
-            if r.in_force(submitted_on) and r.applies_to.matches(case) is True
+            if r.in_force(submitted_on) and r.applies_to.matches(case, jurisdiction) is True
         ]
 
-    def undetermined(self, case: Case, submitted_on: date) -> list[tuple[Rule, list[str]]]:
-        """Rules that may cover this case but need attributes the case lacks."""
+    def undetermined(
+        self, case: Case, submitted_on: date, jurisdiction: Jurisdiction | None = None
+    ) -> list[tuple[Rule, list[str]]]:
+        """Rules that may cover this case but need facts nobody has recorded."""
         return [
-            (r, r.applies_to.missing_attributes(case))
+            (r, r.applies_to.missing(case, jurisdiction))
             for r in self.for_state(case.state)
-            if r.in_force(submitted_on) and r.applies_to.matches(case) is None
+            if r.in_force(submitted_on) and r.applies_to.matches(case, jurisdiction) is None
         ]
 
     def get(self, rule_id: str) -> Rule:
