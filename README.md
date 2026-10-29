@@ -24,7 +24,10 @@ uv run shotclock rules --checks             # rule library + open verification c
 
 # Boulder open data -> elapsed-time benchmark
 uv run shotclock ingest boulder path/to/boulder_permits.csv
-uv run shotclock benchmark --jurisdiction boulder-co --out data/out/boulder.csv
+uv run shotclock benchmark --jurisdiction boulder-co --since 2020 --out data/out/boulder.csv
+
+# Denver open data (commercial and residential exports together)
+uv run shotclock ingest denver ODC_DEV_COMMERCIALCONSTPERMIT_P.csv ODC_DEV_RESIDENTIALCONSTPERMIT_P.csv
 
 # A city export mapped to ledger CSV -> statutory clocks
 uv run shotclock ingest ledger export.csv --jurisdiction elk-valley-co --state CO
@@ -61,6 +64,7 @@ src/shotclock/
   clock.py           clock engine: apply rules to one case's events
   metrics.py         process report (city vs applicant, departments), elapsed benchmark
   ingest/boulder.py  City of Boulder permits CSV
+  ingest/denver.py   Denver commercial and residential permit CSVs
   ingest/ledger_csv.py  generic ledger-shaped CSV (one row per event)
   ingest/workflow.py    task-history exports via a mapping file (Accela, Tyler, ...)
   status.py          public status page for pending applications

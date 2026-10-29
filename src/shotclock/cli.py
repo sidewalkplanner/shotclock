@@ -13,7 +13,13 @@ from shotclock.alerts import build_alerts, render_text
 from shotclock.clock import OPEN_STATUSES, evaluate_case
 from shotclock.ingest import ImportReport
 from shotclock.ingest.boulder import JURISDICTION as BOULDER
+from shotclock.ingest.boulder import NOTES as BOULDER_NOTES
+from shotclock.ingest.boulder import SOURCE as BOULDER_SOURCE
 from shotclock.ingest.boulder import read_boulder
+from shotclock.ingest.denver import JURISDICTION as DENVER
+from shotclock.ingest.denver import NOTES as DENVER_NOTES
+from shotclock.ingest.denver import SOURCE as DENVER_SOURCE
+from shotclock.ingest.denver import read_denver
 from shotclock.ingest.ledger_csv import read_ledger_csv
 from shotclock.ingest.workflow import WorkflowMapping, read_workflow
 from shotclock.ledger import Jurisdiction, submitted_at
@@ -65,6 +71,16 @@ def cmd_ingest_boulder(args: argparse.Namespace) -> None:
     with Store(args.db) as store:
         store.upsert_jurisdiction(BOULDER)
         store.write_cases(cases)
+        store.set_source_notes(BOULDER.jurisdiction, BOULDER_SOURCE, BOULDER_NOTES)
+    _print_report(report)
+
+
+def cmd_ingest_denver(args: argparse.Namespace) -> None:
+    cases, report = read_denver(args.csv)
+    with Store(args.db) as store:
+        store.upsert_jurisdiction(DENVER)
+        store.write_cases(cases)
+        store.set_source_notes(DENVER.jurisdiction, DENVER_SOURCE, DENVER_NOTES)
     _print_report(report)
 
 
@@ -124,7 +140,10 @@ def cmd_benchmark(args: argparse.Namespace) -> None:
         rows = elapsed_benchmark(
             store, args.jurisdiction, min_cases=args.min_cases, since=args.since
         )
+        notes = store.source_notes(args.jurisdiction)
     print("# elapsed calendar days, submittal to issuance (city + applicant time)", file=sys.stderr)
+    for source, note in notes:
+        print(f"# {source}: {note}", file=sys.stderr)
     censored = sum(r.open_share > CENSORED_SHARE for r in rows)
     if censored:
         print(
@@ -140,7 +159,10 @@ def cmd_process(args: argparse.Namespace) -> None:
     with Store(args.db) as store:
         name = store.get_jurisdiction(args.jurisdiction).name
         report = process_report(store, args.jurisdiction, as_of)
+        notes = store.source_notes(args.jurisdiction)
     print(render_process(name, report), end="")
+    for source, note in notes:
+        print(f"Note ({source}): {note}")
 
 
 def cmd_clocks(args: argparse.Namespace) -> None:
@@ -215,6 +237,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("csv", type=Path)
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_ingest_boulder)
+
+    sp = isub.add_parser("denver", help="Denver commercial and/or residential permit CSVs")
+    sp.add_argument("csv", type=Path, nargs="+")
+    sp.add_argument("--db", default=DEFAULT_DB)
+    sp.set_defaults(func=cmd_ingest_denver)
 
     sp = isub.add_parser("ledger", help="ledger-shaped CSV (one row per event)")
     sp.add_argument("csv", type=Path)

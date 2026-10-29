@@ -46,6 +46,7 @@ types into this vocabulary. Add to it here when a rule needs a new one.
 | `single_family_new` | FL decision limit (30 business days) |
 | `multifamily_new`, `commercial_new`, `commercial_alteration`, `residential_addition` | general; any rule with `case_types: ["*"]` |
 | `rezoning`, `zoning_amendment`, `zoning_variance`, `conditional_use` | AZ SB 1162 |
+| `commercial__*`, `residential__*` | Denver open data classes; `residential__new_building_no_units` holds garages and sheds |
 | `preliminary_plat`, `final_plat`, `replat`, `subdivision_plan`, `site_plan` | TX ch. 247, TN PC 1044 |
 
 Case attributes rules read: `affordable_share` (CO), `units` (CA). Jurisdiction facts:
@@ -90,6 +91,16 @@ issued cases only. Each group carries `open_share`. Above 5% the group is right-
 its slowest cases have not finished, so its percentiles understate the wait, and recent
 years always look faster than they will turn out to be. Publish censored groups only with
 that caveat, or wait for them to close. Void and withdrawn permits are excluded at import.
+
+### Comparing cities
+
+Boulder and Denver both publish "application to issuance", but the endpoints differ:
+Denver's issue date is the day fees are paid, and Denver lists issued permits only, while
+Boulder includes open ones. Case types differ too (Boulder's PermitType plus work type;
+Denver's commercial/residential class, with residential new buildings split by whether they
+add housing units). Cross-city comparisons need these differences stated next to the numbers,
+which is what `source_notes` holds: each connector records its caveats at import, and
+`benchmark` and `process` print them with every run.
 
 ## Decisions taken
 

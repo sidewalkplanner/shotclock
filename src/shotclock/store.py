@@ -47,6 +47,22 @@ class Store:
             [j.jurisdiction, j.name, j.state, j.permits_per_year, j.population],
         )
 
+    def set_source_notes(self, jurisdiction: str, source: str, notes: list[str]) -> None:
+        """Replace the caveats recorded for one source in one jurisdiction."""
+        self.con.execute(
+            "DELETE FROM source_notes WHERE jurisdiction = ? AND source = ?", [jurisdiction, source]
+        )
+        for note in notes:
+            self.con.execute(
+                "INSERT INTO source_notes VALUES (?, ?, ?)", [jurisdiction, source, note]
+            )
+
+    def source_notes(self, jurisdiction: str) -> list[tuple[str, str]]:
+        return self.con.execute(
+            "SELECT source, note FROM source_notes WHERE jurisdiction = ? ORDER BY source, note",
+            [jurisdiction],
+        ).fetchall()
+
     def get_jurisdiction(self, jurisdiction: str) -> Jurisdiction:
         row = self.con.execute(
             """

@@ -15,6 +15,14 @@ CREATE TABLE IF NOT EXISTS jurisdictions (
 -- Added after the first release; IF NOT EXISTS upgrades older local databases in place.
 ALTER TABLE jurisdictions ADD COLUMN IF NOT EXISTS population INTEGER;
 
+-- Known limits of each source, printed with every figure built on it.
+CREATE TABLE IF NOT EXISTS source_notes (
+    jurisdiction    TEXT NOT NULL,
+    source          TEXT NOT NULL,
+    note            TEXT NOT NULL,
+    PRIMARY KEY (jurisdiction, source, note)
+);
+
 CREATE TABLE IF NOT EXISTS cases (
     case_id         TEXT NOT NULL,
     jurisdiction    TEXT NOT NULL,

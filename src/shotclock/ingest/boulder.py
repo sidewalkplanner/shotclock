@@ -23,6 +23,11 @@ from shotclock.ingest import ImportReport, parse_date, parse_value, slug
 from shotclock.ledger import Case, CaseEvent, EventType, Holder, Jurisdiction
 
 SOURCE = "boulder-open-data"
+NOTES = [
+    "Dates only, no stage history: elapsed time (city plus applicant), never city time.",
+    "Permit numbering changes in 2018 and same-day issuance of alterations ends in 2020; "
+    "confirm with the city before publishing trends across either.",
+]
 JURISDICTION = Jurisdiction(jurisdiction="boulder-co", name="City of Boulder", state="CO")
 
 REQUIRED = {"PermitID", "PermitNum", "AppliedDate", "IssuedDate", "StatusCurrent", "PermitType"}
