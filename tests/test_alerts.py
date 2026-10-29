@@ -96,3 +96,16 @@ def test_digest_groups_by_department(library):
 
 def test_quiet_day(library):
     assert "Nothing needs action today." in render_text("Peach Grove", [], AS_OF, 5)
+
+
+def test_digest_names_the_applicants_remedy(library):
+    tx = Jurisdiction(jurisdiction="lone-oak-tx", name="Lone Oak", state="TX")
+    plat = Case(case_id="P-1", jurisdiction=tx.jurisdiction, state="TX", case_type="final_plat")
+    events = [CaseEvent(case_id="P-1", event="submitted", at=dt("2026-09-01T09:00"))]
+    with Store() as store:
+        store.upsert_jurisdiction(tx)
+        store.write_cases([(plat, events)])
+        (alert,) = build_alerts(store, tx.jurisdiction, library, AS_OF)
+    text = render_text("Lone Oak", [alert], AS_OF, 5)
+    assert "P-1: 50 days late" in text
+    assert "Applicant may now: Use a qualified third-party reviewer" in text

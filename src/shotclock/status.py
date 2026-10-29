@@ -25,6 +25,7 @@ STAGE_LABELS = {
     EventType.REVIEW_STARTED: "In review",
     EventType.COMMENTS_ISSUED: "Corrections requested",
     EventType.RESUBMITTED: "Resubmitted, in review",
+    EventType.HEARING_SCHEDULED: "Scheduled for a public hearing",
     EventType.APPROVED: "Approved, awaiting permit issuance",
 }
 WAITING_ON = {Holder.CITY: "City", Holder.APPLICANT: "Applicant", Holder.UNKNOWN: "Not recorded"}

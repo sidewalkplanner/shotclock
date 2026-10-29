@@ -35,6 +35,28 @@ and sets `assumes_city_time` on the result. Never publish a city-time figure tha
   `affordable_share`). Undecided cases get no clock, but `shotclock clocks` reports how many
   there are, so a missing field never silently hides a deadline.
 
+## Case types
+
+Rules match normalized case types, so every mapping file should translate a city's record
+types into this vocabulary. Add to it here when a rule needs a new one.
+
+| Case type | Used by |
+| --- | --- |
+| `single_family_new` | FL decision limit (30 business days) |
+| `multifamily_new`, `commercial_new`, `commercial_alteration`, `residential_addition` | general; any rule with `case_types: ["*"]` |
+| `rezoning`, `zoning_amendment`, `zoning_variance`, `conditional_use` | AZ SB 1162 |
+| `preliminary_plat`, `final_plat`, `replat`, `subdivision_plan`, `site_plan` | TX ch. 247, TN PC 1044 |
+
+Case attributes rules read: `affordable_share` (CO), `units` (CA). Jurisdiction facts:
+`population` (AZ), `permits_per_year` (GA transparency, not yet a rule).
+
+## Remedies
+
+A rule's penalty can name a `remedy` the applicant gains once the city is more than
+`remedy_after_late_days` late: Texas third-party review (15), California third-party plan
+check (0), Tennessee deemed approval (0). Clock results carry it, and the alert digest
+prints it, so staff see the consequence as well as the lateness.
+
 ## Verifying a rule
 
 Each rule file lists every claim it encodes under `checks`. To verify one, read the
@@ -100,12 +122,12 @@ Statute questions now live in each rule's `checks`. The ones that most affect th
 - Georgia's transparency duty (250+ permits a year) is an obligation on the jurisdiction,
   not a clock, so it is not yet modeled. It belongs in the prospect list (Census Building
   Permits Survey counts), which needs network access to census.gov.
-- Texas HB 14 and Tennessee's 2026 reform are not encoded: the thesis has no day counts for
-  either, so they need statute research first.
+- Tennessee's two-deficiency-notice cap and Texas's deemed approval of unacted plats are
+  recorded as checks but not encoded; both would be valuable alerts once confirmed.
 
 ## Backlog, in order
 
-Done: ledger, clock engine, GA/FL/CO/AZ/CA rules (unverified), Boulder, ledger-CSV and
+Done: ledger, clock engine, GA/FL/CO/AZ/CA/TX/TN rules (unverified), Boulder, ledger-CSV and
 workflow connectors, public status page, jurisdiction-scoped rules, staff deadline alerts,
 process report.
 
@@ -115,6 +137,5 @@ process report.
    hours spent, per the thesis's onboarding-cost metric.
 4. Georgia prospect list: every jurisdiction over 250 permits a year, from Census
    Building Permits Survey data (needs census.gov allowed).
-5. Texas and Tennessee rules after statute research.
-6. Hosted Postgres (Supabase) once a design partner's data arrives and GSA outside-activity
+5. Hosted Postgres (Supabase) once a design partner's data arrives and GSA outside-activity
    approval is in hand.

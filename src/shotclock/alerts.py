@@ -31,6 +31,7 @@ class Alert:
     status: str  # overdue | at_risk | on_track
     days_remaining: int  # negative when overdue
     due_date: date | None
+    remedy: str | None  # what the applicant may now do because the city is late
     rule_verified: bool
 
 
@@ -69,6 +70,7 @@ def build_alerts(
                     status=r.status.value,
                     days_remaining=r.days_remaining,
                     due_date=r.due_date,
+                    remedy=r.remedy,
                     rule_verified=r.rule_verified,
                 )
             )
@@ -111,6 +113,8 @@ def render_text(name: str, alerts: list[Alert], as_of: datetime, within_days: in
                 )
                 lines.append(f"    {a.case_id}{where}: {_when(a)}{with_applicant}")
                 lines.append(f"      {a.clock}")
+                if a.remedy:
+                    lines.append(f"      Applicant may now: {a.remedy}")
     if any(not a.rule_verified for a in alerts):
         lines.append(
             "\nNote: some deadlines come from state rules not yet verified against statute text."

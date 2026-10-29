@@ -22,6 +22,7 @@ class EventType(StrEnum):
     REVIEW_STARTED = "review_started"
     COMMENTS_ISSUED = "comments_issued"
     RESUBMITTED = "resubmitted"
+    HEARING_SCHEDULED = "hearing_scheduled"  # placed on a planning commission / council agenda
     APPROVED = "approved"
     DENIED = "denied"
     ISSUED = "issued"
@@ -43,6 +44,7 @@ DEFAULT_HOLDER: dict[EventType, Holder] = {
     EventType.REVIEW_STARTED: Holder.CITY,
     EventType.COMMENTS_ISSUED: Holder.APPLICANT,
     EventType.RESUBMITTED: Holder.CITY,
+    EventType.HEARING_SCHEDULED: Holder.CITY,
     EventType.APPROVED: Holder.APPLICANT,  # applicant pays fees / picks up the permit
     EventType.DENIED: Holder.NONE,
     EventType.ISSUED: Holder.NONE,

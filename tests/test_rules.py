@@ -19,7 +19,7 @@ MINIMAL = {
 
 
 def test_library_loads_every_state(library):
-    assert {r.state for r in library.rules} == {"AZ", "CA", "CO", "FL", "GA"}
+    assert {r.state for r in library.rules} == {"AZ", "CA", "CO", "FL", "GA", "TN", "TX"}
     assert all(not r.verified for r in library.rules)  # nothing checked against statute yet
 
 
@@ -103,3 +103,55 @@ def test_california_small_residential_only(library):
     assert big == []
     (clock,) = small
     assert (clock.days_used, clock.status) == (44, ClockStatus.OVERDUE)
+
+
+def test_texas_third_party_review_opens_after_15_days_late(library):
+    evs = events(("submitted", "2026-03-02T09:00"))
+    plat = case("TX", "final_plat")
+    (on_day_15,) = evaluate_case(plat, evs, library, dt("2026-04-16T12:00"))
+    assert (on_day_15.days_used, on_day_15.late_days, on_day_15.remedy) == (45, 15, None)
+    (on_day_16,) = evaluate_case(plat, evs, library, dt("2026-04-17T12:00"))
+    assert on_day_16.status is ClockStatus.OVERDUE
+    assert on_day_16.remedy.startswith("Use a qualified third-party reviewer")
+
+
+def test_texas_resubmittal_round_is_15_days(library):
+    evs = events(
+        ("submitted", "2026-03-02"),
+        ("comments_issued", "2026-03-20"),
+        ("resubmitted", "2026-04-01"),
+    )
+    r = {x.cycle: x for x in evaluate_case(case("TX", "site_plan"), evs, library, dt("2026-04-10"))}
+    assert (r[1].limit_days, r[1].status) == (30, ClockStatus.MET)
+    assert (r[2].limit_days, r[2].days_used, r[2].days_remaining) == (15, 9, 6)
+
+
+def test_tennessee_hearing_stops_decision_clock_and_late_comments_deem_approval(library):
+    evs = events(
+        ("submitted", "2027-01-04T09:00"),
+        ("comments_issued", "2027-02-22T09:00"),
+        ("resubmitted", "2027-03-08T09:00"),
+        ("hearing_scheduled", "2027-03-12T09:00"),
+    )
+    r = {
+        x.clock_id: x
+        for x in evaluate_case(case("TN", "final_plat"), evs, library, dt("2027-04-01"))
+    }
+    # Business days Jan 5 - Feb 22, less MLK Day and Presidents' Day.
+    comments = r["comments"]
+    assert (comments.days_used, comments.status, comments.late_days) == (33, ClockStatus.MISSED, 3)
+    assert comments.remedy.startswith("Treat the application as approved")
+    decision = r["decision"]
+    assert (decision.days_used, decision.status, decision.remedy) == (37, ClockStatus.MET, None)
+
+
+def test_tennessee_not_in_force_before_2027(library):
+    evs = events(("submitted", "2026-12-15"))
+    assert evaluate_case(case("TN", "final_plat"), evs, library, dt("2027-02-01")) == []
+
+
+def test_remedy_needs_its_threshold():
+    from shotclock.rules import Penalty
+
+    with pytest.raises(ValidationError, match="go together"):
+        Penalty(summary="x", remedy="third-party review")

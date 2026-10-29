@@ -60,6 +60,7 @@ class ClockResult:
     status: ClockStatus
     late_days: int
     penalty_estimate: float | None  # share of the fee forfeited, where the law is arithmetic
+    remedy: str | None  # set once the applicant can use the state's remedy
     assumes_city_time: bool
     rule_verified: bool
 
@@ -173,6 +174,11 @@ def evaluate_clock(
                 status=status,
                 late_days=late,
                 penalty_estimate=min(1.0, late * rate) if rate and late else None,
+                remedy=(
+                    rule.penalty.remedy
+                    if rule.penalty and rule.penalty.remedy_available(late)
+                    else None
+                ),
                 assumes_city_time=assumes_city_time,
                 rule_verified=rule.verified,
             )

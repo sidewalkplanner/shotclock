@@ -137,6 +137,19 @@ class Penalty(BaseModel):
     summary: str
     # Structured where the law is arithmetic (Florida's fee reduction); otherwise text only.
     fee_reduction_per_late_day: float | None = None
+    # A remedy the applicant gains once the city is more than this many days late
+    # (Texas: third-party review 15 days after the deadline; California: any lateness).
+    remedy: str | None = None
+    remedy_after_late_days: int | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> Penalty:
+        if (self.remedy is None) != (self.remedy_after_late_days is None):
+            raise ValueError("remedy and remedy_after_late_days go together")
+        return self
+
+    def remedy_available(self, late_days: int) -> bool:
+        return self.remedy_after_late_days is not None and late_days > self.remedy_after_late_days
 
 
 class CheckStatus(StrEnum):

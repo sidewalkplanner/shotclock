@@ -52,7 +52,7 @@ def cmd_rules(args: argparse.Namespace) -> None:
         done = len(r.checks) - len(r.open_checks)
         flag = "verified" if r.verified else f"{done}/{len(r.checks)} checked"
         clocks = ", ".join(c.id for c in r.clocks)
-        print(f"{r.id:<16} {r.state}  from {r.effective_from}  {flag:<12} {r.citation}  [{clocks}]")
+        print(f"{r.id:<16} {r.state}  from {r.effective_from}  {flag:<13} {r.citation}  [{clocks}]")
         if args.checks:
             for c in r.open_checks:
                 print(f"    [ ] {c.claim}")

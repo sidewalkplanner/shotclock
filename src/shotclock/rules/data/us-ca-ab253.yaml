@@ -39,4 +39,6 @@ clocks:
     limit_days: 30
 penalty:
   summary: Applicant may hire a licensed third-party plan checker.
+  remedy: Hire a licensed third-party plan checker (AB 253)
+  remedy_after_late_days: 0
 transparency: Review timeline estimate to the applicant.

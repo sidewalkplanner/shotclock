@@ -1,0 +1,47 @@
+id: us-tn-pc1044
+state: TN
+name: Tennessee development review deadlines
+citation: Public Chapter 1044 (2026), HB 2552 / SB 2237
+effective_from: 2027-01-01
+checks:
+  - claim: In force for applications submitted on or after 2027-01-01
+    note: Does not reach contracts existing on 2026-12-31.
+  - claim: Day counts are business days
+    note: The UT CLP guide says business days; an OpenGov summary says 30 calendar days.
+  - claim: Staff written comments are due within 30 business days of submittal
+  - claim: Staff must approve, or place the application on the next planning commission or
+      governing body agenda, within 60 business days of submittal
+  - claim: Time with the applicant does not count against the city
+  - claim: A missed deadline means the application is approved as submitted
+  - claim: At most two written deficiency notices per application; after that staff must
+      deny (refunding 50% of fees), conditionally approve, or forward it for a decision
+    note: Not yet encoded. A third comments_issued would be a violation to flag.
+  - claim: Surety and bond releases are due within 120 business days of an independent
+      engineer's certification
+    note: Not yet encoded.
+  - claim: Covers the case types listed under applies_to
+    note: Confirm which "development applications" the chapter means.
+sources:
+  - https://www.ips.tennessee.edu/article/new-clp-policy-guide-public-chapter-1044-new-development-review-deadlines-start-jan-1-2027
+  - https://www.ctas.tennessee.edu/news/new-state-law-sets-mandatory-deadlines-development-review-center-local-planning-releases
+  - https://www.goldwaterinstitute.org/tennessee-gov-bill-lee-signs-permit-reform-legislation/
+applies_to:
+  case_types: [preliminary_plat, final_plat, replat, subdivision_plan, site_plan]
+day_basis: business
+pause_when_applicant_holds: true
+clocks:
+  - id: comments
+    label: Written staff comments
+    start: [submitted]
+    stop: [comments_issued, approved, denied, hearing_scheduled]
+    limit_days: 30
+  - id: decision
+    label: Approve or place on the next agenda
+    start: [submitted]
+    stop: [approved, denied, hearing_scheduled]
+    limit_days: 60
+penalty:
+  summary: Application is deemed approved as submitted.
+  remedy: Treat the application as approved as submitted (deemed approval)
+  remedy_after_late_days: 0
+transparency: None found.

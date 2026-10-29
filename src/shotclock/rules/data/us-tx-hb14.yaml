@@ -1,0 +1,48 @@
+id: us-tx-hb14
+state: TX
+name: Texas plat and plan deadlines with third-party review
+citation: HB 14 (2023), Local Gov't Code ch. 247; deadlines in ch. 212
+effective_from: 2023-09-01
+checks:
+  - claim: Chapter 247 in force from 2023-09-01
+  - claim: A city must approve, conditionally approve or disapprove a plat or plan within
+      30 days of filing (Local Gov't Code 212.009)
+  - claim: A conditional approval or disapproval with written reasons ends the review round
+  - claim: The city must act on the applicant's response within 15 days (212.0095)
+    note: From recollection of 212.0095, not from a source read this session.
+  - claim: Day counts are calendar days
+  - claim: Once the city is 15 days past a deadline, the applicant may use a third-party
+      reviewer (city or county staff, another political subdivision, or a Texas-licensed
+      engineer who is not the applicant)
+  - claim: The city may not charge an added fee for third-party review, or require the
+      applicant to waive a deadline
+  - claim: A plat not acted on within 30 days is considered approved (212.009(d))
+    note: From recollection; not encoded as a remedy until confirmed.
+  - claim: Covers the case types listed under applies_to
+    note: Austin's guidance says ch. 247 also covers site plans, certain license agreements
+      and building permits. The underlying building-permit deadline is not encoded.
+  - claim: Counties are covered too, under ch. 232
+    note: Not encoded; this rule is written for municipalities.
+sources:
+  - https://www.furmancenter.org/enacted-legislation/hb-14/
+  - https://capitol.texas.gov/tlodocs/88R/analysis/html/HB00014E.htm
+  - https://austintexas.gov/node/91295
+applies_to:
+  case_types: [preliminary_plat, final_plat, replat, subdivision_plan, site_plan]
+day_basis: calendar
+pause_when_applicant_holds: true
+clocks:
+  - id: plat_review
+    label: Plat or plan review
+    kind: review_cycles
+    start: [submitted]
+    restart: [resubmitted]
+    stop: [comments_issued, approved, denied]
+    limit_days_by_cycle: [30, 15]
+penalty:
+  summary: >
+    Fifteen days after a missed deadline the applicant may have the document reviewed by a
+    qualified third party, at no added city fee.
+  remedy: Use a qualified third-party reviewer (Local Gov't Code ch. 247)
+  remedy_after_late_days: 15
+transparency: None found.
