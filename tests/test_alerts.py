@@ -13,7 +13,7 @@ def put(store: Store, case_id: str, *evs: tuple[str, str, str | None], address=N
         case_id=case_id,
         jurisdiction=GA.jurisdiction,
         state="GA",
-        case_type="single_family_new",
+        case_type="land_disturbance",
         attributes={"address": address} if address else {},
     )
     events = [
@@ -25,7 +25,7 @@ def put(store: Store, case_id: str, *evs: tuple[str, str, str | None], address=N
 def build(library):
     with Store() as store:
         store.upsert_jurisdiction(GA)
-        # Review round 1 opened Oct 2: day 49 of 45 on Nov 20.
+        # Review round 1 runs from filing Oct 1: day 50 of 45 on Nov 20.
         put(
             store,
             "LATE",
@@ -35,7 +35,7 @@ def build(library):
         )
         # Completeness check opened Nov 17: day 3 of 5, due Nov 22.
         put(store, "SOON", ("submitted", "2026-11-17T09:00", "Permit Center"))
-        # Review round 1 opened Oct 21: day 30 of 45, nothing to flag.
+        # Review round 1 from filing Oct 20: day 31 of 45, nothing to flag.
         put(
             store,
             "FINE",
@@ -65,7 +65,7 @@ def build(library):
 def test_alerts_pick_out_what_needs_action(library):
     alerts = build(library)
     assert [(a.case_id, a.status, a.days_remaining) for a in alerts] == [
-        ("LATE", "overdue", -4),
+        ("LATE", "overdue", -5),
         ("SOON", "on_track", 2),
     ]
     late, soon = alerts
@@ -81,7 +81,7 @@ def test_horizon_widens_the_net(library):
         )
         assert build_alerts(store, GA.jurisdiction, library, AS_OF, within_days=5) == []
         (alert,) = build_alerts(store, GA.jurisdiction, library, AS_OF, within_days=15)
-    assert alert.days_remaining == 15
+    assert alert.days_remaining == 14
 
 
 def test_digest_groups_by_department(library):
@@ -89,7 +89,11 @@ def test_digest_groups_by_department(library):
     assert text.startswith("Peach Grove: permit deadlines as of Nov 20, 2026\n")
     assert "1 past a state deadline, 1 due soon" in text
     late_block = text.split("PAST DEADLINE")[1].split("DUE SOON")[0]
-    assert "  Building\n    LATE  12 Elm St: 4 days late\n      Plan review, round 1" in late_block
+    assert (
+        "  Building\n    LATE  12 Elm St: 5 days late\n"
+        "      Land-disturbance permit review, round 1" in late_block
+    )
+    assert "Applicant may now: Refund of all application fees" in late_block
     assert "  Permit Center\n    SOON: 2 days left, Sun Nov 22" in text
     assert "not yet verified" in text
 

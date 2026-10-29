@@ -111,15 +111,29 @@ class Clock(BaseModel):
     limit_days: int | None = None
     limit_days_by_case_type: dict[str, int] = Field(default_factory=dict)
     limit_days_by_cycle: list[int] = Field(default_factory=list)  # last value repeats
+    # Overrides the rule's remedy for this clock (Georgia: a missed completeness check means
+    # "deemed complete", not the fee refund that follows a missed decision).
+    remedy: str | None = None
+    remedy_after_late_days: int | None = None
 
     @model_validator(mode="after")
     def _check(self) -> Clock:
+        if (self.remedy is None) != (self.remedy_after_late_days is None):
+            raise ValueError(f"{self.id}: remedy and remedy_after_late_days go together")
         if self.kind is ClockKind.REVIEW_CYCLES:
             if not self.limit_days_by_cycle or not self.restart:
                 raise ValueError(f"{self.id}: review_cycles needs limit_days_by_cycle and restart")
         elif self.limit_days is None and not self.limit_days_by_case_type:
             raise ValueError(f"{self.id}: span clock needs limit_days or limit_days_by_case_type")
         return self
+
+    def remedy_for(self, penalty: Penalty | None, late_days: int) -> str | None:
+        """The remedy the applicant holds after ``late_days``, clock-level first."""
+        if self.remedy is not None:
+            return self.remedy if late_days > self.remedy_after_late_days else None
+        if penalty and penalty.remedy_available(late_days):
+            return penalty.remedy
+        return None
 
     def limit_for(self, case: Case, cycle: int = 1) -> int:
         if self.kind is ClockKind.REVIEW_CYCLES:

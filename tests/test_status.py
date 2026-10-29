@@ -31,16 +31,16 @@ def test_status_mid_review(library):
     review = rows["B26-0001"]
     assert review.stage == "Resubmitted, in review"
     assert review.waiting_on == "City"
-    assert review.clock == "Plan review, round 2: day 6 of 20 (calendar days)"
+    assert review.clock == "Land-disturbance permit review, round 2: day 6 of 20 (calendar days)"
     assert review.clock_status == "on_track"
     assert str(review.due_date) == "2026-10-26"
 
     returned = rows["B26-0002"]
     assert returned.stage == "Returned: application incomplete"
     assert returned.waiting_on == "Applicant"
-    assert returned.clock is None  # completeness clock met; review clock not started
+    assert returned.clock is None  # a building permit: Georgia sets no deadline for it
 
-    assert summary.recent_met == 3  # completeness x2, review round 1
+    assert summary.recent_met == 2  # B26-0001 completeness and review round 1
     assert summary.recent_missed == 0
     assert not summary.rules_verified
 
@@ -58,7 +58,7 @@ def test_html_escapes_and_flags_unverified_rules(library):
         case_id="<script>alert(1)</script>",
         jurisdiction=j.jurisdiction,
         state="GA",
-        case_type="deck",
+        case_type="land_disturbance",
         attributes={"address": '1 "Main" St'},
     )
     events = [CaseEvent(case_id=case.case_id, event="submitted", at=dt("2026-10-01"))]
@@ -80,7 +80,9 @@ def test_overdue_sorts_first_and_says_how_late(library):
     j = Jurisdiction(jurisdiction="y-ga", name="Y", state="GA")
 
     def mk(case_id, submitted):
-        c = Case(case_id=case_id, jurisdiction=j.jurisdiction, state="GA", case_type="deck")
+        c = Case(
+            case_id=case_id, jurisdiction=j.jurisdiction, state="GA", case_type="land_disturbance"
+        )
         return c, [CaseEvent(case_id=case_id, event="submitted", at=dt(submitted))]
 
     with Store() as store:

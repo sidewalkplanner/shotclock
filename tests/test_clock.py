@@ -17,13 +17,16 @@ def test_georgia_review_cycles_and_at_risk(library):
         ("comments_issued", "2026-10-10T16:00"),
         ("resubmitted", "2026-10-20T11:00"),
     )
-    r = by_clock(evaluate_case(case("GA"), evs, library, as_of=dt("2026-11-05T12:00")))
+    r = by_clock(
+        evaluate_case(case("GA", "land_disturbance"), evs, library, as_of=dt("2026-11-05T12:00"))
+    )
 
     completeness = r[("us-ga-sb447", "completeness", None)]
     assert (completeness.days_used, completeness.status) == (2, ClockStatus.MET)
 
     first = r[("us-ga-sb447", "review", 1)]
-    assert (first.limit_days, first.days_used, first.status) == (45, 36, ClockStatus.MET)
+    # 45 days run from filing (O.C.G.A. 12-7-9(c)): Sep 3 .. Oct 10.
+    assert (first.limit_days, first.days_used, first.status) == (45, 38, ClockStatus.MET)
 
     second = r[("us-ga-sb447", "review", 2)]
     assert second.limit_days == 20
@@ -46,7 +49,9 @@ def test_georgia_later_rounds_use_last_limit(library):
         ("resubmitted", "2026-10-01"),
         ("approved", "2026-10-20"),
     )
-    r = by_clock(evaluate_case(case("GA"), evs, library, as_of=dt("2026-11-01")))
+    r = by_clock(
+        evaluate_case(case("GA", "land_disturbance"), evs, library, as_of=dt("2026-11-01"))
+    )
     assert [r[("us-ga-sb447", "review", n)].limit_days for n in (1, 2, 3, 4)] == [45, 20, 14, 14]
     fourth = r[("us-ga-sb447", "review", 4)]
     assert (fourth.days_used, fourth.status, fourth.late_days) == (19, ClockStatus.MISSED, 5)
@@ -54,7 +59,7 @@ def test_georgia_later_rounds_use_last_limit(library):
 
 def test_rule_not_in_force_before_effective_date(library):
     evs = events(("submitted", "2026-06-15"), ("complete", "2026-06-16"))
-    assert evaluate_case(case("GA"), evs, library, as_of=dt("2026-07-15")) == []
+    assert evaluate_case(case("GA", "land_disturbance"), evs, library, as_of=dt("2026-07-15")) == []
 
 
 def test_florida_decision_pauses_while_applicant_holds(library):
@@ -134,3 +139,19 @@ def test_events_after_as_of_are_ignored(library):
     decision = r[("us-fl-553-792", "decision", None)]
     assert decision.status is ClockStatus.ON_TRACK
     assert decision.days_used == 4
+
+
+def test_georgia_clocks_cover_land_disturbance_not_building_permits(library):
+    evs = events(("submitted", "2026-09-02"), ("complete", "2026-09-04"))
+    assert evaluate_case(case("GA", "single_family_new"), evs, library, dt("2026-10-01")) == []
+
+
+def test_georgia_remedies_differ_by_clock(library):
+    evs = events(("submitted", "2026-09-01T09:00"))
+    r = by_clock(evaluate_case(case("GA", "land_disturbance"), evs, library, dt("2026-10-20")))
+    completeness = r[("us-ga-sb447", "completeness", None)]
+    assert completeness.status is ClockStatus.OVERDUE
+    assert completeness.remedy.startswith("Treat the application as complete")
+    review = r[("us-ga-sb447", "review", 1)]
+    assert (review.days_used, review.late_days) == (49, 4)
+    assert review.remedy.startswith("Refund of all application fees")

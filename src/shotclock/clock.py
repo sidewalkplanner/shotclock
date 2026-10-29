@@ -174,11 +174,7 @@ def evaluate_clock(
                 status=status,
                 late_days=late,
                 penalty_estimate=min(1.0, late * rate) if rate and late else None,
-                remedy=(
-                    rule.penalty.remedy
-                    if rule.penalty and rule.penalty.remedy_available(late)
-                    else None
-                ),
+                remedy=clock.remedy_for(rule.penalty, late),
                 assumes_city_time=assumes_city_time,
                 rule_verified=rule.verified,
             )

@@ -42,6 +42,7 @@ types into this vocabulary. Add to it here when a rule needs a new one.
 
 | Case type | Used by |
 | --- | --- |
+| `land_disturbance` | GA SB 447 (O.C.G.A. 12-7-9): the only Georgia permits with deadlines |
 | `single_family_new` | FL decision limit (30 business days) |
 | `multifamily_new`, `commercial_new`, `commercial_alteration`, `residential_addition` | general; any rule with `case_types: ["*"]` |
 | `rezoning`, `zoning_amendment`, `zoning_variance`, `conditional_use` | AZ SB 1162 |

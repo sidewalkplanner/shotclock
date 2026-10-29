@@ -23,7 +23,7 @@ def imported():
 def test_workflow_rows_become_case_events(imported):
     cases, _ = imported
     case, evs = cases["B26-0001"]
-    assert case.case_type == "single_family_new"
+    assert case.case_type == "land_disturbance"
     assert case.attributes == {"units": 1}
     assert [e.event for e in evs] == [
         EventType.SUBMITTED,
@@ -53,7 +53,7 @@ def test_workflow_export_drives_georgia_clocks(imported, library):
         (r.clock_id, r.cycle): r for r in evaluate_case(case, evs, library, dt("2026-11-01"))
     }
     assert results[("completeness", None)].days_used == 2
-    assert results[("review", 1)].days_used == 22  # Sep 4 .. Sep 25
+    assert results[("review", 1)].days_used == 24  # from filing: Sep 2 .. Sep 25
     second = results[("review", 2)]
     assert (second.days_used, second.limit_days, second.status) == (15, 20, ClockStatus.MET)
 

@@ -12,6 +12,7 @@ columns:
 attributes:
   units: Housing Units
 case_types:
+  Land/Disturbance/NA/NA: land_disturbance
   Building/Residential/New/NA: single_family_new
   Building/Commercial/Alteration/NA: commercial_alteration
 events:

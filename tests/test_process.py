@@ -38,7 +38,7 @@ def test_workflow_export_process_report():
 
     rows = {r.case_type: r for r in report.by_case_type}
     assert "deck" not in rows  # withdrawn without a decision has no duration
-    sfr = rows["single_family_new"]
+    sfr = rows["land_disturbance"]
     # Submitted Sep 1 08:30, approved Oct 21 11:00.
     assert (sfr.decided, round(sfr.median_days)) == (1, 50)
     assert (round(sfr.median_city_days), round(sfr.median_applicant_days)) == (39, 11)
