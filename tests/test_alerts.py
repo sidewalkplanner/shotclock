@@ -109,3 +109,11 @@ def test_digest_names_the_applicants_remedy(library):
     text = render_text("Lone Oak", [alert], AS_OF, 5)
     assert "P-1: 50 days late" in text
     assert "Applicant may now: Use a qualified third-party reviewer" in text
+
+
+def test_digest_says_one_day_not_one_days(library):
+    with Store() as store:
+        store.upsert_jurisdiction(GA)
+        put(store, "TIGHT", ("submitted", "2026-11-16T09:00", "Permit Center"))
+        (alert,) = build_alerts(store, GA.jurisdiction, library, AS_OF)
+    assert "TIGHT: 1 day left, Sat Nov 21" in render_text("Peach Grove", [alert], AS_OF, 5)

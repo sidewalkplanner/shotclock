@@ -78,13 +78,17 @@ def build_alerts(
     return alerts
 
 
+def _days(n: int) -> str:
+    return f"{n} day" if n == 1 else f"{n} days"
+
+
 def _when(a: Alert) -> str:
     if a.days_remaining < 0:
-        return f"{-a.days_remaining} days late"
+        return f"{_days(-a.days_remaining)} late"
     if a.days_remaining == 0:
         return "due today"
     due = f", {a.due_date:%a %b} {a.due_date.day}" if a.due_date else ""
-    return f"{a.days_remaining} days left{due}"
+    return f"{_days(a.days_remaining)} left{due}"
 
 
 def render_text(name: str, alerts: list[Alert], as_of: datetime, within_days: int) -> str:

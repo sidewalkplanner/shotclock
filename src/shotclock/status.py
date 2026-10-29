@@ -52,6 +52,7 @@ class StatusRow:
     clock: str | None  # "Review, round 2: day 16 of 20"
     clock_status: str | None  # ClockStatus value
     due_date: date | None
+    days_late: int  # > 0 only when the clock is overdue
 
 
 @dataclass(frozen=True)
@@ -107,10 +108,16 @@ def build_status(
                 clock=describe(top) if top else None,
                 clock_status=top.status.value if top else None,
                 due_date=top.due_date if top else None,
+                days_late=top.late_days if top else 0,
             )
         )
 
-    rows.sort(key=lambda r: (r.due_date or date.max, r.submitted_on))
+    # Most urgent first: overdue (latest first), then by due date; no running clock last.
+    def urgency(r: StatusRow) -> tuple:
+        rank = _URGENCY.index(ClockStatus(r.clock_status)) if r.clock_status else len(_URGENCY)
+        return (rank, -r.days_late, r.due_date or date.max, r.submitted_on)
+
+    rows.sort(key=urgency)
     by_status: dict[str, int] = {}
     for r in rows:
         key = r.clock_status or "no_clock"
@@ -203,7 +210,10 @@ def render_html(summary: StatusSummary) -> str:
             if r.clock_status
             else ""
         )
-        due = f"<small>Due {_fmt(r.due_date)}</small>" if r.due_date else ""
+        if r.days_late:
+            due = f"<small>{r.days_late} day{'' if r.days_late == 1 else 's'} late</small>"
+        else:
+            due = f"<small>Due {_fmt(r.due_date)}</small>" if r.due_date else ""
         body_rows.append(
             f'<tr data-search="{e(search)}">'
             f'<td data-label="Application"><b class="nowrap">{e(r.case_id)}</b>'

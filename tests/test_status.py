@@ -74,3 +74,20 @@ def test_html_escapes_and_flags_unverified_rules(library):
     assert "Preview." in page
     assert "Past deadline" in page  # 5-day completeness check blown
     assert json.loads(to_json(summary))["rows"][0]["clock_status"] == "overdue"
+
+
+def test_overdue_sorts_first_and_says_how_late(library):
+    j = Jurisdiction(jurisdiction="y-ga", name="Y", state="GA")
+
+    def mk(case_id, submitted):
+        c = Case(case_id=case_id, jurisdiction=j.jurisdiction, state="GA", case_type="deck")
+        return c, [CaseEvent(case_id=case_id, event="submitted", at=dt(submitted))]
+
+    with Store() as store:
+        store.upsert_jurisdiction(j)
+        # FRESH: day 1 of 5. LATE: day 8 of 5. Paused/none sort after both.
+        store.write_cases([mk("FRESH", "2026-10-09"), mk("LATE", "2026-10-02")])
+        summary = build_status(store, "y-ga", library, as_of=dt("2026-10-10"))
+    assert [r.case_id for r in summary.rows] == ["LATE", "FRESH"]
+    assert summary.rows[0].days_late == 3
+    assert "3 days late" in render_html(summary)
