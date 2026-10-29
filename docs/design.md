@@ -27,6 +27,9 @@ and sets `assumes_city_time` on the result. Never publish a city-time figure tha
   `overdue`, `paused` (applicant holds the file), `at_risk` (remaining days at or under 20% of
   the limit), or `on_track`, with a projected `due_date` when the city holds the file.
 - **Versioning.** A case is measured against rule versions in force on its submittal date.
+- **Jurisdiction facts.** Conditions can be scoped to the jurisdiction (`population`,
+  `permits_per_year`) as well as the case. An unrecorded fact leaves the rule undetermined.
+  Upserts never erase a stored fact, so re-importing a city keeps what we know about it.
 - **Applicability is three-valued.** A rule applies, does not apply, or cannot be decided
   because the case lacks an attribute a condition needs (Prop 123 without
   `affordable_share`). Undecided cases get no clock, but `shotclock clocks` reports how many
@@ -82,23 +85,26 @@ Statute questions now live in each rule's `checks`. The ones that most affect th
 - Parallel department review: the ledger is case-level, so one department's sign-off is
   ignored and "comments issued" marks the consolidated letter. A city that sends each
   department's comments separately needs a decision on when the city's clock stops.
-- Jurisdiction-level scope: Arizona applies only to cities of 30,000+ and Georgia's
-  transparency rule to 250+ permits a year. Rules need a jurisdiction condition (population,
-  `permits_per_year`) as well as case conditions.
+- Alert routing: an alert goes to the department on the case's latest event. After a
+  resubmittal that is usually intake, not the reviewer. A real export with per-department
+  "review started" rows fixes this through the mapping; check it on the first one.
+- Georgia's transparency duty (250+ permits a year) is an obligation on the jurisdiction,
+  not a clock, so it is not yet modeled. It belongs in the prospect list (Census Building
+  Permits Survey counts), which needs network access to census.gov.
 - Texas HB 14 and Tennessee's 2026 reform are not encoded: the thesis has no day counts for
   either, so they need statute research first.
 
 ## Backlog, in order
 
 Done: ledger, clock engine, GA/FL/CO/AZ/CA rules (unverified), Boulder, ledger-CSV and
-workflow connectors, public status page.
+workflow connectors, public status page, jurisdiction-scoped rules, staff deadline alerts.
 
 1. Run the Boulder connector on the real export and review the import report.
 2. Work the `rules --checks` list against statute text, Georgia first.
 3. Map the first real workflow export (records request or design partner) and record
    hours spent, per the thesis's onboarding-cost metric.
-4. Jurisdiction-level rule conditions (population, permits per year).
-5. Deadline alerts: a daily digest of `at_risk` and `overdue` clocks for city staff.
-6. Texas and Tennessee rules after statute research.
-7. Hosted Postgres (Supabase) once a design partner's data arrives and GSA outside-activity
+4. Georgia prospect list: every jurisdiction over 250 permits a year, from Census
+   Building Permits Survey data (needs census.gov allowed).
+5. Texas and Tennessee rules after statute research.
+6. Hosted Postgres (Supabase) once a design partner's data arrives and GSA outside-activity
    approval is in hand.

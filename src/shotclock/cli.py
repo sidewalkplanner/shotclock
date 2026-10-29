@@ -9,6 +9,7 @@ from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 
+from shotclock.alerts import build_alerts, render_text
 from shotclock.clock import OPEN_STATUSES, evaluate_case
 from shotclock.ingest import ImportReport
 from shotclock.ingest.boulder import JURISDICTION as BOULDER
@@ -155,6 +156,21 @@ def cmd_clocks(args: argparse.Namespace) -> None:
     _write_rows(rows, args.out)
 
 
+def cmd_alerts(args: argparse.Namespace) -> None:
+    as_of = datetime.fromisoformat(args.as_of) if args.as_of else datetime.now()
+    with Store(args.db) as store:
+        name = store.get_jurisdiction(args.jurisdiction).name
+        alerts = build_alerts(store, args.jurisdiction, RuleLibrary.load(), as_of, args.within)
+    if args.csv:
+        _write_rows([asdict(a) for a in alerts], args.csv)
+    digest = render_text(name, alerts, as_of, args.within)
+    if args.out:
+        args.out.write_text(digest)
+        print(f"wrote {len(alerts)} alerts to {args.out}")
+    elif not args.csv:
+        print(digest, end="")
+
+
 def cmd_status_page(args: argparse.Namespace) -> None:
     as_of = datetime.fromisoformat(args.as_of) if args.as_of else datetime.now()
     with Store(args.db) as store:
@@ -225,6 +241,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--out", type=Path)
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_clocks)
+
+    sp = sub.add_parser("alerts", help="digest of overdue and soon-due deadlines for staff")
+    sp.add_argument("--jurisdiction", required=True)
+    sp.add_argument("--within", type=int, default=5, help="counting days ahead (default 5)")
+    sp.add_argument("--as-of", help="ISO date or datetime; default now")
+    sp.add_argument("--out", type=Path, help="write the text digest here")
+    sp.add_argument("--csv", type=Path, help="also write alerts as CSV")
+    sp.add_argument("--db", default=DEFAULT_DB)
+    sp.set_defaults(func=cmd_alerts)
 
     sp = sub.add_parser("status-page", help="public status page for pending applications")
     sp.add_argument("--jurisdiction", required=True)

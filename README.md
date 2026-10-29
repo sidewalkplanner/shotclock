@@ -34,6 +34,12 @@ uv run shotclock clocks --jurisdiction elk-valley-co --open-only
 uv run shotclock ingest workflow tasks.csv --mapping mappings/peach-grove.yaml \
     --jurisdiction peach-grove-ga --state GA --name "Peach Grove"
 
+# Jurisdiction facts some laws scope on (Arizona: population; Georgia: permits a year)
+uv run shotclock jurisdiction peach-grove-ga --population 41000 --permits-per-year 900
+
+# Morning digest of overdue and soon-due deadlines, grouped by department
+uv run shotclock alerts --jurisdiction peach-grove-ga --within 5
+
 # Public status page for pending applications (index.html + status.json)
 uv run shotclock status-page --jurisdiction peach-grove-ga --out data/out/peach-grove
 ```
@@ -55,6 +61,7 @@ src/shotclock/
   ingest/ledger_csv.py  generic ledger-shaped CSV (one row per event)
   ingest/workflow.py    task-history exports via a mapping file (Accela, Tyler, ...)
   status.py          public status page for pending applications
+  alerts.py          staff digest of overdue and soon-due deadlines
   cli.py             `shotclock` command
 mappings/            per-city workflow mappings; example-accela.yaml is illustrative
 docs/design.md       how the clock works, decisions, open questions, backlog
