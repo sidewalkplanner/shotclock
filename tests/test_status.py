@@ -91,3 +91,20 @@ def test_overdue_sorts_first_and_says_how_late(library):
     assert [r.case_id for r in summary.rows] == ["LATE", "FRESH"]
     assert summary.rows[0].days_late == 3
     assert "3 days late" in render_html(summary)
+
+
+def test_parcel_id_is_shown_and_searchable(library):
+    j = Jurisdiction(jurisdiction="z-ga", name="Z", state="GA")
+    c = Case(
+        case_id="P1",
+        jurisdiction=j.jurisdiction,
+        state="GA",
+        case_type="deck",
+        attributes={"address": "1 Main St", "parcel_id": "14-0072-0001"},
+    )
+    with Store() as store:
+        store.upsert_jurisdiction(j)
+        store.write_cases([(c, [CaseEvent(case_id="P1", event="submitted", at=dt("2026-10-01"))])])
+        page = render_html(build_status(store, "z-ga", library, as_of=dt("2026-10-02")))
+    assert "Parcel 14-0072-0001" in page
+    assert 'data-search="p1 1 main st 14-0072-0001' in page

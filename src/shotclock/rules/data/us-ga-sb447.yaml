@@ -1,13 +1,16 @@
 id: us-ga-sb447
 state: GA
 name: Georgia permit shot clock
-citation: SB 447 (2026)
+citation: SB 447 (2026), Act 513
 effective_from: 2026-07-01
 checks:
   - claim: In force for applications submitted on or after 2026-07-01
   - claim: Day counts are calendar days (not business days) for every clock
     note: Secondary sources disagree on this.
   - claim: Completeness determination is due within 5 days of submittal
+  - claim: An application is deemed complete if the city does not respond within the
+      completeness window
+    note: HousingWire summary. Not yet encoded; the review clock would then start at day 5.
   - claim: First review is due within 45 days of the completeness determination
     note: Also settle when the 45 days start if the city never makes a determination.
   - claim: Second review round is due within 20 days of resubmittal
@@ -18,10 +21,21 @@ checks:
     note: Summaries mention land-disturbance and building permits; confirm the scope.
   - claim: Real-time public status required from 2028-01-01 for jurisdictions issuing 250+
       building permits a year
+  - claim: The public portal must need no login and be searchable by permit number, address
+      and parcel ID
+    note: OpenGov summary. The status page searches a parcel_id case attribute when present.
+  - claim: Paulding County and its five adjacent counties (including Cobb) are exempt
+    note: From a pre-final-passage summary (ACEC Georgia). Material to the prospect list;
+      not encoded until confirmed.
+  - claim: No new comments after a second submission, and denials must be explained in
+      writing
+    note: Not yet encoded.
 sources:
   - https://www.accela.com/?p=16430
   - https://www.thompsonhine.com/insights/georgias-senate-bill-447-new-permitting-rules-for-real-estate-developers/
   - https://www.housingwire.com/articles/georgia-permit-shot-clock/
+  - https://opengov.com/article/georgia-sb-447-permitting-compliance/
+  - https://business.acecga.org/capitolupdates/Details/2026-capitol-update-sine-die-342511
 applies_to:
   case_types: ["*"]
 day_basis: calendar

@@ -45,6 +45,7 @@ class StatusRow:
     case_id: str
     case_type: str
     address: str | None
+    parcel_id: str | None
     submitted_on: date
     stage: str
     stage_since: date
@@ -101,6 +102,9 @@ def build_status(
                 case_id=case.case_id,
                 case_type=case.case_type.replace("_", " "),
                 address=case.attributes.get("address"),
+                parcel_id=(
+                    str(case.attributes["parcel_id"]) if "parcel_id" in case.attributes else None
+                ),
                 submitted_on=submitted_at(events).date(),
                 stage=STAGE_LABELS.get(last.event, last.event.value),
                 stage_since=last.at.date(),
@@ -203,7 +207,10 @@ def render_html(summary: StatusSummary) -> str:
     ]
     body_rows = []
     for r in summary.rows:
-        search = " ".join(filter(None, [r.case_id, r.address, r.case_type, r.stage])).lower()
+        search = " ".join(
+            filter(None, [r.case_id, r.address, r.parcel_id, r.case_type, r.stage])
+        ).lower()
+        parcel = f"<small>Parcel {e(r.parcel_id)}</small>" if r.parcel_id else ""
         pill = (
             f'<span class="pill {e(r.clock_status)}">'
             f"{e(STATUS_LABELS[ClockStatus(r.clock_status)])}</span>"
@@ -217,7 +224,7 @@ def render_html(summary: StatusSummary) -> str:
         body_rows.append(
             f'<tr data-search="{e(search)}">'
             f'<td data-label="Application"><b class="nowrap">{e(r.case_id)}</b>'
-            f"<small>{e(r.address or '')}</small></td>"
+            f"<small>{e(r.address or '')}</small>{parcel}</td>"
             f'<td data-label="Type">{e(r.case_type)}</td>'
             f'<td data-label="Submitted" class="nowrap">{_fmt(r.submitted_on)}</td>'
             f'<td data-label="Stage">{e(r.stage)}<small>since {_fmt(r.stage_since)}</small></td>'
@@ -249,7 +256,7 @@ def render_html(summary: StatusSummary) -> str:
 <p class="sub">Status as of {e(as_of)}. Updated from the city's permitting system.</p>
 {banner}
 <section class="stats" aria-label="Summary">{stat_html}</section>
-<label for="q">Search by application number, address or type</label>
+<label for="q">Search by application number, address, parcel or type</label>
 <input id="q" type="search" autocomplete="off">
 <table><thead><tr><th>Application</th><th>Type</th><th>Submitted</th><th>Stage</th>
 <th>Waiting on</th><th>State deadline</th></tr></thead>
