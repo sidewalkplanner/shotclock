@@ -51,6 +51,15 @@ events. The import report counts every unmapped task/status pair: map each new e
 until the unmapped list holds only things that genuinely are not case events
 (inspections, fee postings), then mark those `ignore: true`.
 
+## Process metrics
+
+`shotclock process` measures decided cases from submittal to decision (approval or denial;
+issuance stands in when a source never records approval), so time after approval is
+nobody's delay. City-held time is credited to the department on the event that **ends** each
+interval: whoever issues the comments or the approval held the file. An open interval goes
+to the department that opened it. When most time has no recorded holder (date-only open
+data), the report says so and blanks the city/applicant split instead of printing zeros.
+
 ## Decisions taken
 
 - **Python core, DuckDB locally, Postgres later.** The schema avoids DuckDB-only features.
@@ -97,7 +106,8 @@ Statute questions now live in each rule's `checks`. The ones that most affect th
 ## Backlog, in order
 
 Done: ledger, clock engine, GA/FL/CO/AZ/CA rules (unverified), Boulder, ledger-CSV and
-workflow connectors, public status page, jurisdiction-scoped rules, staff deadline alerts.
+workflow connectors, public status page, jurisdiction-scoped rules, staff deadline alerts,
+process report.
 
 1. Run the Boulder connector on the real export and review the import report.
 2. Work the `rules --checks` list against statute text, Georgia first.

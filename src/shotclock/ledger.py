@@ -117,6 +117,9 @@ def holder_intervals(
 ) -> list[tuple[Holder, datetime, datetime, str | None]]:
     """Turn events into ``(holder, start, end, department)`` intervals.
 
+    The department is the one on the event that ends the interval when it names one: the
+    department that issues comments or approves is the one that held the file. Otherwise,
+    and for the open final interval, it is the department on the event that started it.
     The final interval of an open case runs to ``until``. Zero-length intervals are dropped.
     """
     ordered = sort_events(events)
@@ -124,8 +127,9 @@ def holder_intervals(
     for i, ev in enumerate(ordered):
         if ev.holder is Holder.NONE:
             continue
-        end = ordered[i + 1].at if i + 1 < len(ordered) else until
-        end = min(end, until)
+        nxt = ordered[i + 1] if i + 1 < len(ordered) and ordered[i + 1].at <= until else None
+        end = nxt.at if nxt else until
         if end > ev.at:
-            out.append((ev.holder, ev.at, end, ev.department))
+            dept = (nxt.department if nxt else None) or ev.department
+            out.append((ev.holder, ev.at, end, dept))
     return out

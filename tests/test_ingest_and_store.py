@@ -75,7 +75,12 @@ def test_ledger_csv_to_clock_end_to_end():
     process = case_process(case.case_id, events, as_of=dt("2026-04-15T15:00"))
     assert process.review_cycles == 2
     assert round(process.hours_by_holder[Holder.APPLICANT]) == 19 * 24 - 5
-    assert set(process.hours_by_department) == {"unassigned", "zoning"}
+    # Each city interval belongs to the department that ended it.
+    assert {d: round(h / 24) for d, h in process.hours_by_department.items()} == {
+        "zoning": 9,  # intake Feb 1 -> completeness Feb 10
+        "engineering": 19,  # Feb 10 10:00 -> comments Mar 1 16:00
+        "building": 26,  # resubmitted Mar 20 -> approved Apr 15
+    }
 
 
 def test_reimport_keeps_known_jurisdiction_facts():

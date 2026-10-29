@@ -17,7 +17,7 @@ from shotclock.ingest.boulder import read_boulder
 from shotclock.ingest.ledger_csv import read_ledger_csv
 from shotclock.ingest.workflow import WorkflowMapping, read_workflow
 from shotclock.ledger import Jurisdiction, submitted_at
-from shotclock.metrics import elapsed_benchmark
+from shotclock.metrics import elapsed_benchmark, process_report, render_process
 from shotclock.rules import RuleLibrary
 from shotclock.status import build_status, render_html, to_json
 from shotclock.store import Store
@@ -126,6 +126,14 @@ def cmd_benchmark(args: argparse.Namespace) -> None:
     _write_rows([asdict(r) for r in rows], args.out)
 
 
+def cmd_process(args: argparse.Namespace) -> None:
+    as_of = datetime.fromisoformat(args.as_of) if args.as_of else datetime.now()
+    with Store(args.db) as store:
+        name = store.get_jurisdiction(args.jurisdiction).name
+        report = process_report(store, args.jurisdiction, as_of)
+    print(render_process(name, report), end="")
+
+
 def cmd_clocks(args: argparse.Namespace) -> None:
     as_of = datetime.fromisoformat(args.as_of) if args.as_of else datetime.now()
     library = RuleLibrary.load()
@@ -232,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--out", type=Path)
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_benchmark)
+
+    sp = sub.add_parser("process", help="where cases wait: city vs applicant, by department")
+    sp.add_argument("--jurisdiction", required=True)
+    sp.add_argument("--as-of", help="ISO date or datetime; default now")
+    sp.add_argument("--db", default=DEFAULT_DB)
+    sp.set_defaults(func=cmd_process)
 
     sp = sub.add_parser("clocks", help="statutory clocks for a jurisdiction or one case")
     sp.add_argument("--jurisdiction", required=True)

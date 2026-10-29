@@ -37,6 +37,9 @@ uv run shotclock ingest workflow tasks.csv --mapping mappings/peach-grove.yaml \
 # Jurisdiction facts some laws scope on (Arizona: population; Georgia: permits a year)
 uv run shotclock jurisdiction peach-grove-ga --population 41000 --permits-per-year 900
 
+# Process loop: where cases wait (city vs applicant, by department, open now)
+uv run shotclock process --jurisdiction peach-grove-ga
+
 # Morning digest of overdue and soon-due deadlines, grouped by department
 uv run shotclock alerts --jurisdiction peach-grove-ga --within 5
 
@@ -56,7 +59,7 @@ src/shotclock/
   days.py            statutory day counting: calendar / business days, state holidays
   rules/             rule library loader + data/*.yaml, one file per law, versioned by date
   clock.py           clock engine: apply rules to one case's events
-  metrics.py         process metrics (time by holder/department), elapsed benchmark
+  metrics.py         process report (city vs applicant, departments), elapsed benchmark
   ingest/boulder.py  City of Boulder permits CSV
   ingest/ledger_csv.py  generic ledger-shaped CSV (one row per event)
   ingest/workflow.py    task-history exports via a mapping file (Accela, Tyler, ...)
