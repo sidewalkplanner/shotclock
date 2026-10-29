@@ -17,18 +17,30 @@ ELK_VALLEY = Jurisdiction(jurisdiction="elk-valley-co", name="Elk Valley", state
 
 def test_boulder_import_reports_every_problem():
     cases, report = read_boulder(FIXTURES / "boulder_synthetic.csv")
-    assert report.rows == 9
-    assert report.cases == 6
-    assert report.skipped == {"no_applied_date": 1, "duplicate_row": 1, "unparseable_date": 1}
+    assert report.rows == 11  # a quoted description spanning two lines is still one row
+    assert report.cases == 7
+    assert report.skipped == {
+        "no_applied_date": 1,
+        "duplicate_row": 1,
+        "unparseable_date": 1,
+        "status_void": 1,
+    }
     assert report.warnings == {"issued_before_applied": 1, "duplicate_permit_number": 3}
 
     by_id = {c.case_id: (c, evs) for c, evs in cases}
     assert {"PMT2025-00006#a6", "PMT2025-00006#a7"} <= by_id.keys()
 
     case, evs = by_id["PMT2025-00001"]
-    assert case.case_type == "residential_new"
+    assert case.case_type == "residential_new__new"
+    assert case.attributes["address"] == "100 EXAMPLE ST"
+    assert case.attributes["parcel_id"] == "146301000001"
+    assert (case.attributes["units"], case.attributes["valuation"]) == (1, 450000)
     assert [e.event for e in evs] == [EventType.SUBMITTED, EventType.ISSUED]
     assert evs[0].holder is Holder.UNKNOWN  # open data has no stage history
+
+    # Work type that only repeats the permit type is not appended.
+    assert by_id["PMT2025-00006#a6"][0].case_type == "residential_addition"
+    assert by_id["PMT2025-00010"][0].attributes["affordable_share"] == 0.6
 
     _, evs = by_id["PMT2025-00004"]  # issued before applied: keep case, drop bad event
     assert [e.event for e in evs] == [EventType.SUBMITTED]
@@ -42,9 +54,10 @@ def test_boulder_benchmark_round_trip():
         store.write_cases(cases)  # re-import replaces, never duplicates
         rows = {r.case_type: r for r in elapsed_benchmark(store, "boulder-co", min_cases=1)}
 
-    new = rows["residential_new"]
+    new = rows["residential_new__new"]
     assert (new.cases, new.issued) == (3, 2)  # the open case counts, but has no duration
     assert new.median_days == 60.0  # 60 and 60 days
+    assert new.open_share == round(1 / 3, 4)  # one of three still open: censored
     addition = rows["residential_addition"]
     assert (addition.cases, addition.issued, addition.median_days) == (3, 2, 24.0)  # 20 and 28
 
@@ -113,3 +126,11 @@ def test_schema_upgrades_an_older_database(tmp_path):
     with Store(path) as store:
         j = store.get_jurisdiction("a-co")
     assert (j.permits_per_year, j.population) == (300, None)
+
+
+def test_benchmark_since_drops_earlier_years():
+    cases, _ = read_boulder(FIXTURES / "boulder_synthetic.csv")
+    with Store() as store:
+        store.upsert_jurisdiction(BOULDER)
+        store.write_cases(cases)
+        assert elapsed_benchmark(store, "boulder-co", min_cases=1, since=2026) == []

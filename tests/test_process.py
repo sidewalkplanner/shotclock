@@ -61,8 +61,8 @@ def test_date_only_source_warns_and_hides_split():
         report = process_report(store, "boulder-co", as_of=dt("2025-06-01"))
 
     assert report.unknown_share == 1.0
-    new = next(r for r in report.by_case_type if r.case_type == "residential_new")
+    new = next(r for r in report.by_case_type if r.case_type == "residential_new__new")
     assert (new.decided, new.median_days) == (2, 60.0)  # issuance stands in for approval
     text = render_process("Boulder", report)
     assert "no recorded holder" in text
-    assert "  residential new              2      60    60     -     -       -" in text
+    assert "  residential new  new         2      60    60     -     -       -" in text

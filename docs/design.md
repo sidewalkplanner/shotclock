@@ -83,6 +83,14 @@ interval: whoever issues the comments or the approval held the file. An open int
 to the department that opened it. When most time has no recorded holder (date-only open
 data), the report says so and blanks the city/applicant split instead of printing zeros.
 
+## Benchmarks from open data
+
+`shotclock benchmark` reports submittal-to-issuance percentiles per case type and year, for
+issued cases only. Each group carries `open_share`. Above 5% the group is right-censored:
+its slowest cases have not finished, so its percentiles understate the wait, and recent
+years always look faster than they will turn out to be. Publish censored groups only with
+that caveat, or wait for them to close. Void and withdrawn permits are excluded at import.
+
 ## Decisions taken
 
 - **Python core, DuckDB locally, Postgres later.** The schema avoids DuckDB-only features.
@@ -112,8 +120,13 @@ Statute questions now live in each rule's `checks`. The ones that most affect th
   is a placeholder), whether applicant time pauses the 90 days, and the affordability test.
 - Business days: state legal holidays (for example Florida's Susan B. Anthony Day) may not
   match a city's actual closures. A per-jurisdiction holiday calendar may be needed.
-- Boulder export: the data dictionary does not fix the permit-type column name, so the
-  connector takes the first of several candidates. Confirm against a real download.
+- Boulder, from the first real export (2026-10, 335,929 rows): the numbering changed in 2018
+  (`PMT...` to typed prefixes like `BLD-SFD`), which suggests a system migration. In 2020
+  same-day issuance of single-family alterations fell from about 50% to 0%. That may be a
+  real process change (an end to over-the-counter permits when intake moved online) or a
+  change in what the date fields mean. Ask the city before publishing any trend across
+  2018-2020. Also ask whether IssuedDate is issuance or fee payment, and why 2,928 permits
+  show an issue date before their application date.
 - Parallel department review: the ledger is case-level, so one department's sign-off is
   ignored and "comments issued" marks the consolidated letter. A city that sends each
   department's comments separately needs a decision on when the city's clock stops.

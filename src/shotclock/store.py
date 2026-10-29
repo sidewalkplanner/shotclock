@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 import json
+import tempfile
 from collections.abc import Iterable, Iterator
 from importlib import resources
 from pathlib import Path
@@ -64,51 +66,75 @@ class Store:
         )
 
     def write_cases(self, rows: Iterable[tuple[Case, list[CaseEvent]]]) -> int:
-        """Insert or replace cases with their full event history. Returns cases written."""
-        cases, events = [], []
-        for case, evs in rows:
-            cases.append(
-                (case.case_id, case.jurisdiction, case.case_type, json.dumps(case.attributes))
-            )
-            for seq, e in enumerate(evs):
-                events.append(
-                    (
-                        case.jurisdiction,
-                        case.case_id,
-                        seq,
-                        e.event.value,
-                        e.holder.value,
-                        e.department,
-                        e.at,
-                        e.source,
-                        e.source_ref,
+        """Insert or replace cases with their full event history. Returns cases written.
+
+        Rows are staged as CSV and bulk-loaded: DuckDB's row-at-a-time inserts take minutes
+        for a city's full permit history, a bulk load takes seconds.
+        """
+        with tempfile.TemporaryDirectory(prefix="shotclock-") as tmp:
+            cases_csv, events_csv = Path(tmp) / "cases.csv", Path(tmp) / "events.csv"
+            n = 0
+            with cases_csv.open("w", newline="") as cf, events_csv.open("w", newline="") as ef:
+                cw, ew = csv.writer(cf), csv.writer(ef)
+                for case, evs in rows:
+                    n += 1
+                    cw.writerow(
+                        [
+                            case.case_id,
+                            case.jurisdiction,
+                            case.case_type,
+                            json.dumps(case.attributes),
+                        ]
                     )
+                    for seq, e in enumerate(evs):
+                        ew.writerow(
+                            [
+                                case.jurisdiction,
+                                case.case_id,
+                                seq,
+                                e.event.value,
+                                e.holder.value,
+                                e.department or "",
+                                e.at.isoformat(sep=" "),
+                                e.source or "",
+                                e.source_ref or "",
+                            ]
+                        )
+            if not n:
+                return 0
+            cases_src = (
+                f"read_csv('{cases_csv}', header=false, nullstr='', quote='\"', columns="
+                "{'case_id': 'VARCHAR', 'jurisdiction': 'VARCHAR', 'case_type': 'VARCHAR', "
+                "'attributes': 'VARCHAR'})"
+            )
+            events_src = (
+                f"read_csv('{events_csv}', header=false, nullstr='', quote='\"', columns="
+                "{'jurisdiction': 'VARCHAR', 'case_id': 'VARCHAR', 'seq': 'INTEGER', "
+                "'event': 'VARCHAR', 'holder': 'VARCHAR', 'department': 'VARCHAR', "
+                "'occurred_at': 'TIMESTAMP', 'source': 'VARCHAR', 'source_ref': 'VARCHAR'})"
+            )
+            self.con.execute("BEGIN")
+            try:
+                self.con.execute(
+                    "CREATE OR REPLACE TEMP TABLE _keys AS "
+                    f"SELECT DISTINCT jurisdiction, case_id FROM {cases_src}"
                 )
-        if not cases:
-            return 0
-        self.con.execute("BEGIN")
-        try:
-            self.con.execute(
-                "CREATE TEMP TABLE IF NOT EXISTS _keys (jurisdiction TEXT, case_id TEXT)"
-            )
-            self.con.execute("DELETE FROM _keys")
-            self.con.executemany("INSERT INTO _keys VALUES (?, ?)", [(c[1], c[0]) for c in cases])
-            self.con.execute(
-                "DELETE FROM case_events WHERE (jurisdiction, case_id) IN (SELECT * FROM _keys)"
-            )
-            self.con.execute(
-                "DELETE FROM cases WHERE (jurisdiction, case_id) IN (SELECT * FROM _keys)"
-            )
-            self.con.executemany("INSERT INTO cases VALUES (?, ?, ?, ?)", cases)
-            if events:
-                self.con.executemany(
-                    "INSERT INTO case_events VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", events
+                self.con.execute(
+                    "DELETE FROM case_events WHERE (jurisdiction, case_id) IN (SELECT * FROM _keys)"
                 )
-            self.con.execute("COMMIT")
-        except Exception:
-            self.con.execute("ROLLBACK")
-            raise
-        return len(cases)
+                self.con.execute(
+                    "DELETE FROM cases WHERE (jurisdiction, case_id) IN (SELECT * FROM _keys)"
+                )
+                self.con.execute(
+                    "INSERT INTO cases SELECT case_id, jurisdiction, case_type, "
+                    f"attributes::JSON FROM {cases_src}"
+                )
+                self.con.execute(f"INSERT INTO case_events SELECT * FROM {events_src}")
+                self.con.execute("COMMIT")
+            except Exception:
+                self.con.execute("ROLLBACK")
+                raise
+        return n
 
     # -- reads ----------------------------------------------------------------------------
 

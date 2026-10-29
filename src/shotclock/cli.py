@@ -17,7 +17,7 @@ from shotclock.ingest.boulder import read_boulder
 from shotclock.ingest.ledger_csv import read_ledger_csv
 from shotclock.ingest.workflow import WorkflowMapping, read_workflow
 from shotclock.ledger import Jurisdiction, submitted_at
-from shotclock.metrics import elapsed_benchmark, process_report, render_process
+from shotclock.metrics import CENSORED_SHARE, elapsed_benchmark, process_report, render_process
 from shotclock.rules import RuleLibrary
 from shotclock.status import build_status, render_html, to_json
 from shotclock.store import Store
@@ -121,8 +121,17 @@ def cmd_jurisdiction(args: argparse.Namespace) -> None:
 
 def cmd_benchmark(args: argparse.Namespace) -> None:
     with Store(args.db) as store:
-        rows = elapsed_benchmark(store, args.jurisdiction, min_cases=args.min_cases)
+        rows = elapsed_benchmark(
+            store, args.jurisdiction, min_cases=args.min_cases, since=args.since
+        )
     print("# elapsed calendar days, submittal to issuance (city + applicant time)", file=sys.stderr)
+    censored = sum(r.open_share > CENSORED_SHARE for r in rows)
+    if censored:
+        print(
+            f"# {censored} groups have over {CENSORED_SHARE:.0%} of cases still open: their "
+            "percentiles understate the wait (see open_share)",
+            file=sys.stderr,
+        )
     _write_rows([asdict(r) for r in rows], args.out)
 
 
@@ -237,6 +246,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("benchmark", help="elapsed-time percentiles by case type and year")
     sp.add_argument("--jurisdiction", required=True)
     sp.add_argument("--min-cases", type=int, default=10)
+    sp.add_argument("--since", type=int, default=0, help="first submittal year to include")
     sp.add_argument("--out", type=Path)
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_benchmark)

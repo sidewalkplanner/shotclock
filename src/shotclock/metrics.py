@@ -60,12 +60,14 @@ SELECT
     year(submitted_at) AS submitted_year,
     count(*) AS cases,
     count(issued_at) AS issued,
+    round(1 - count(issued_at) / count(*), 4) AS open_share,
     quantile_cont(date_diff('day', submitted_at, issued_at), 0.5) AS median_days,
     quantile_cont(date_diff('day', submitted_at, issued_at), 0.75) AS p75_days,
     quantile_cont(date_diff('day', submitted_at, issued_at), 0.9) AS p90_days
 FROM spans
 WHERE submitted_at IS NOT NULL
   AND (issued_at IS NULL OR issued_at >= submitted_at)
+  AND year(submitted_at) >= $since
 GROUP BY ALL
 HAVING count(issued_at) >= $min_cases
 ORDER BY case_type, submitted_year
@@ -78,15 +80,25 @@ class ElapsedRow:
     submitted_year: int
     cases: int
     issued: int
+    open_share: float  # not yet issued; above CENSORED_SHARE the percentiles run fast
     median_days: float
     p75_days: float
     p90_days: float
 
 
-def elapsed_benchmark(store: Store, jurisdiction: str, min_cases: int = 10) -> list[ElapsedRow]:
-    """Submittal-to-issuance percentiles. Groups with fewer than ``min_cases`` are dropped."""
+# Percentiles cover issued cases only. When many cases in a group are still open, the slow
+# ones are missing and the percentiles understate the wait (right-censoring): recent years
+# always look faster than they will turn out to be.
+CENSORED_SHARE = 0.05
+
+
+def elapsed_benchmark(
+    store: Store, jurisdiction: str, min_cases: int = 10, since: int = 0
+) -> list[ElapsedRow]:
+    """Submittal-to-issuance percentiles. Groups with fewer than ``min_cases`` issued are
+    dropped; ``since`` drops submittal years before it."""
     rows = store.con.execute(
-        _ELAPSED_SQL, {"jurisdiction": jurisdiction, "min_cases": min_cases}
+        _ELAPSED_SQL, {"jurisdiction": jurisdiction, "min_cases": min_cases, "since": since}
     ).fetchall()
     return [ElapsedRow(*r) for r in rows]
 
