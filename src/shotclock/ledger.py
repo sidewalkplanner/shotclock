@@ -26,6 +26,8 @@ class EventType(StrEnum):
     APPROVED = "approved"
     DENIED = "denied"
     ISSUED = "issued"
+    SUSPENDED = "suspended"  # an issued permit suspended by the city
+    CLOSED = "closed"  # finaled, expired, or otherwise closed out
     WITHDRAWN = "withdrawn"
 
 
@@ -48,10 +50,14 @@ DEFAULT_HOLDER: dict[EventType, Holder] = {
     EventType.APPROVED: Holder.APPLICANT,  # applicant pays fees / picks up the permit
     EventType.DENIED: Holder.NONE,
     EventType.ISSUED: Holder.NONE,
+    EventType.SUSPENDED: Holder.NONE,
+    EventType.CLOSED: Holder.NONE,
     EventType.WITHDRAWN: Holder.NONE,
 }
 
-CLOSING_EVENTS = frozenset({EventType.DENIED, EventType.ISSUED, EventType.WITHDRAWN})
+CLOSING_EVENTS = frozenset(
+    {EventType.DENIED, EventType.ISSUED, EventType.SUSPENDED, EventType.CLOSED, EventType.WITHDRAWN}
+)
 
 
 class Jurisdiction(BaseModel):

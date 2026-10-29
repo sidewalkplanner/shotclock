@@ -29,14 +29,16 @@ def test_status_mid_review(library):
     rows = {r.case_id: r for r in summary.rows}
 
     review = rows["B26-0001"]
-    assert review.stage == "Resubmitted, in review"
+    assert (review.status, review.stage) == ("Under review", "Resubmitted by the applicant")
     assert review.waiting_on == "City"
+    assert review.department == "Permit Center"
+    assert str(review.updated_on) == "2026-10-06"
     assert review.clock == "Land-disturbance permit review, round 2: day 6 of 20 (calendar days)"
     assert review.clock_status == "on_track"
     assert str(review.due_date) == "2026-10-26"
 
     returned = rows["B26-0002"]
-    assert returned.stage == "Returned: application incomplete"
+    assert returned.status == "Incomplete"
     assert returned.waiting_on == "Applicant"
     assert returned.clock is None  # a building permit: Georgia sets no deadline for it
 
@@ -45,11 +47,51 @@ def test_status_mid_review(library):
     assert not summary.rules_verified
 
 
-def test_issued_cases_drop_off(library):
+def test_issued_cases_stay_listed_after_pending_ones(library):
+    # O.C.G.A. 36-60-34(b): every application submitted, not only pending ones.
     with Store() as store:
         load(store)
         summary = build_status(store, "peach-grove-ga", library, as_of=dt("2026-11-01"))
-    assert [r.case_id for r in summary.rows] == ["B26-0002"]
+    assert [(r.case_id, r.status, r.closed) for r in summary.rows] == [
+        ("B26-0002", "Incomplete", False),
+        ("B26-0001", "Issued", True),
+    ]
+    assert (summary.pending, summary.closed) == (1, 1)
+    issued = summary.rows[1]
+    assert (issued.waiting_on, issued.clock) == (None, None)
+    page = render_html(summary)
+    assert '<tr data-search="b26-0001' in page and 'data-closed="1"' in page
+    assert "Show issued and closed applications\n(1)" in page
+
+
+def test_missed_deadlines_and_denial_basis_are_published(library):
+    # 36-60-34(c)(7) and (c)(8).
+    j = Jurisdiction(jurisdiction="d-ga", name="D", state="GA")
+    c = Case(
+        case_id="LD-9",
+        jurisdiction=j.jurisdiction,
+        state="GA",
+        case_type="land_disturbance",
+        attributes={"denial_basis": "O.C.G.A. 12-7-6(b): buffer encroachment"},
+    )
+    evs = [
+        CaseEvent(case_id="LD-9", event="submitted", at=dt("2026-08-01"), department="Engineering"),
+        CaseEvent(case_id="LD-9", event="complete", at=dt("2026-08-10")),  # 9 of 5: late
+        CaseEvent(case_id="LD-9", event="denied", at=dt("2026-09-25")),  # 55 of 45: late
+    ]
+    with Store() as store:
+        store.upsert_jurisdiction(j)
+        store.write_cases([(c, evs)])
+        summary = build_status(store, "d-ga", library, as_of=dt("2026-10-01"))
+    (row,) = summary.rows
+    assert (row.status, row.closed, row.department) == ("Denied", True, "Engineering")
+    assert row.missed == [
+        "Completeness check: 4 days late",
+        "Land-disturbance permit review, round 1: 10 days late",
+    ]
+    page = render_html(summary)
+    assert "Basis for denial: O.C.G.A. 12-7-6(b): buffer encroachment" in page
+    assert '<small class="missed">Missed: Completeness check: 4 days late</small>' in page
 
 
 def test_html_escapes_and_flags_unverified_rules(library):
