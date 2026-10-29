@@ -1,0 +1,10 @@
+PermitNum,PermitID,PermitType,AppliedDate,IssuedDate,CompletedDate,StatusCurrent,Description,OriginalAddress1,OriginalZip
+PMT2025-00001,a1,Residential New,2025-01-06,2025-03-07,,Issued,New single-family dwelling,100 Example St,80302
+PMT2025-00002,a2,Residential New,2025-02-03,2025-04-04,,Issued,New single-family dwelling,102 Example St,80302
+PMT2025-00003,a3,Residential New,2025-03-03,,,In Review,New single-family dwelling,104 Example St,80302
+PMT2025-00004,a4,Residential Addition,2025-03-10,2025-03-01,,Issued,Addition,106 Example St,80304
+PMT2025-00005,a5,Residential Addition,,2025-04-01,,Issued,Addition,108 Example St,80304
+PMT2025-00006,a6,Residential Addition,2025-04-01,2025-04-21,,Issued,Addition,110 Example St,80304
+PMT2025-00006,a7,Residential Addition,2025-04-02,2025-04-30,,Issued,Addition,112 Example St,80304
+PMT2025-00006,a7,Residential Addition,2025-04-02,2025-04-30,,Issued,Addition,112 Example St,80304
+PMT2025-00008,a8,Residential New,04/07/2025,not a date,,Issued,New single-family dwelling,114 Example St,80302

@@ -1,0 +1,59 @@
+# shotclock
+
+The feedback loop for local land use: a neutral data layer that shows where a city's
+land-use cases wait, whether it is meeting state permitting law, and what its rules produce.
+
+Everything rests on one asset, the **normalized case ledger**: every case, from any city
+system, as a list of events recording who had the file and from when to when. Three
+products read from it:
+
+| Loop | Question it answers | Buyer |
+| --- | --- | --- |
+| Process | Where do our cases wait, and what should we change first? | City staff |
+| Compliance | Will we miss a statutory deadline, and can residents see status? | Cities, residents |
+| Outcomes | What did our rules and reforms actually produce? | States, builders, lenders |
+
+This repo is the core engine: ledger, state rule library, clock engine, connectors.
+
+## Quick start
+
+```sh
+uv sync
+uv run pytest
+uv run shotclock rules                      # the rule library, with verification status
+
+# Boulder open data -> elapsed-time benchmark
+uv run shotclock ingest boulder path/to/boulder_permits.csv
+uv run shotclock benchmark --jurisdiction boulder-co --out data/out/boulder.csv
+
+# A city export mapped to ledger CSV -> statutory clocks
+uv run shotclock ingest ledger export.csv --jurisdiction elk-valley-co --state CO
+uv run shotclock clocks --jurisdiction elk-valley-co --open-only
+```
+
+The local database defaults to `./shotclock.duckdb` (git-ignored, like `data/raw/` and `data/out/`).
+
+## Layout
+
+```
+src/shotclock/
+  ledger.py          Case, CaseEvent, EventType, Holder: the ledger shape
+  schema.sql         ledger tables (DuckDB now, Postgres-compatible)
+  store.py           DuckDB store: write/replace cases, read them back
+  days.py            statutory day counting: calendar / business days, state holidays
+  rules/             rule library loader + data/*.yaml, one file per law, versioned by date
+  clock.py           clock engine: apply rules to one case's events
+  metrics.py         process metrics (time by holder/department), elapsed benchmark
+  ingest/boulder.py  City of Boulder permits CSV
+  ingest/ledger_csv.py  generic ledger-shaped CSV (target format for partner exports)
+  cli.py             `shotclock` command
+docs/design.md       how the clock works, decisions, open questions, backlog
+```
+
+## Two rules for anything published
+
+1. **Rules marked `verified: false` are internal only.** Every rule in the library is
+   currently unverified; each file lists what must be checked against statute text.
+2. **Date-only open data supports elapsed time, never city time.** Boulder's data has
+   application and issue dates but no stage history, so its benchmark is total elapsed
+   time (city plus applicant) and must be labeled that way.

@@ -1,0 +1,42 @@
+id: us-ga-sb447
+state: GA
+name: Georgia permit shot clock
+citation: SB 447 (2026)
+effective_from: 2026-07-01
+verified: false
+verification_notes: >
+  Encoded from secondary sources (vendor and law-firm summaries). Open questions to settle
+  against the enrolled bill text before any public use:
+  (1) calendar vs business days for each clock;
+  (2) resubmittal review is 20 days in some summaries and 14 in others;
+  (3) whether the 45-day clock starts at the completeness determination or at submittal when
+  the city never makes one;
+  (4) exactly which permit types are covered (land disturbance, building, both).
+sources:
+  - https://www.accela.com/?p=16430
+  - https://www.thompsonhine.com/insights/georgias-senate-bill-447-new-permitting-rules-for-real-estate-developers/
+  - https://www.housingwire.com/articles/georgia-permit-shot-clock/
+applies_to:
+  case_types: ["*"]
+day_basis: calendar
+pause_when_applicant_holds: true
+clocks:
+  - id: completeness
+    label: Completeness check
+    start: [submitted]
+    stop: [complete, incomplete]
+    limit_days: 5
+  - id: review
+    label: Plan review
+    kind: review_cycles
+    start: [complete]
+    restart: [resubmitted]
+    stop: [comments_issued, approved, denied]
+    limit_days_by_cycle: [45, 20, 14]
+penalty:
+  summary: >
+    Fee refunds, court orders with docket priority, and limits on new comments in later
+    review rounds.
+transparency: >
+  Jurisdictions issuing 250+ building permits a year must offer real-time public status for
+  pending applications by 2028-01-01.
