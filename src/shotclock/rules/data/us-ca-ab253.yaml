@@ -1,0 +1,44 @@
+id: us-ca-ab253
+state: CA
+name: California small residential plan-check deadline
+citation: AB 253 (2025), Health and Safety Code 17960.3
+effective_from: 2026-01-01
+checks:
+  - claim: In force for applications submitted on or after 2026-01-01
+  - claim: The citation is Health and Safety Code 17960.3
+  - claim: Covers residential projects of 10 units or fewer, counting new and existing units
+  - claim: Only 100% residential buildings with no occupied floor more than 40 feet up
+    note: Not encoded as conditions yet (cases rarely carry height); confirm and add.
+  - claim: Plan check is due within 30 days
+  - claim: Day counts are calendar days
+    note: San Diego's checklist says 30 business days after the deemed-complete date.
+  - claim: The agency must issue the permit or list non-compliance within 10 days of a
+      third-party review
+    note: Not yet encoded.
+  - claim: The 30 days start at a complete application
+  - claim: Time with the applicant does not count against the city
+  - claim: If the city misses the deadline, the applicant may hire a licensed third-party
+      plan checker
+  - claim: The city must give the applicant a review timeline estimate
+sources:
+  - https://www.kassounilaw.com/2026/03/how-ab-253-and-ab-301-force-permit-approvals/
+  - https://www.sandiego.gov/development-services/news-programs/ab253
+applies_to:
+  case_types: ["*"]
+  conditions:
+    - attribute: units
+      op: "<="
+      value: 10
+day_basis: calendar
+pause_when_applicant_holds: true
+clocks:
+  - id: plan_check
+    label: Plan check
+    start: [complete]
+    stop: [comments_issued, approved, denied]
+    limit_days: 30
+penalty:
+  summary: Applicant may hire a licensed third-party plan checker.
+  remedy: Hire a licensed third-party plan checker (AB 253)
+  remedy_after_late_days: 0
+transparency: Review timeline estimate to the applicant.

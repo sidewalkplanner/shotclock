@@ -1,0 +1,35 @@
+id: us-co-prop123
+state: CO
+name: Prop 123 expedited review for affordable housing
+citation: Proposition 123, C.R.S. title 29 article 32 (fast-track requirement)
+effective_from: 2026-01-01
+checks:
+  - claim: The citation for the fast-track requirement
+  - claim: Binding from 2026-01-01
+    note: Placeholder. It depends on each city's commitment filing, so this may need a
+      per-jurisdiction date rather than one state date.
+  - claim: Covers development applications where at least 50% of units are affordable
+    note: Confirm share of units vs floor area, and the AMI levels.
+  - claim: Final decision is due within 90 calendar days
+  - claim: The 90 days start at a complete application
+  - claim: Time with the applicant does not count against the city
+  - claim: Missing the deadline costs eligibility for Prop 123 funds in the 2027-2029 cycle
+sources:
+  - https://cdola.colorado.gov/prop123
+applies_to:
+  case_types: ["*"]
+  conditions:
+    - attribute: affordable_share
+      op: ">="
+      value: 0.5
+day_basis: calendar
+pause_when_applicant_holds: true
+clocks:
+  - id: final_decision
+    label: Final decision on a fast-track application
+    start: [complete]
+    stop: [approved, denied]
+    limit_days: 90
+penalty:
+  summary: Lose eligibility for Prop 123 funds in the 2027-2029 cycle.
+transparency: Report the adopted fast-track process to DOLA.

@@ -1,0 +1,8 @@
+case_id,case_type,event,at,holder,department,attr_affordable_share,attr_units
+BLD-2026-04418,multifamily_new,submitted,2026-02-01T09:14,,,0.6,48
+BLD-2026-04418,multifamily_new,complete,2026-02-10T10:00,,zoning,,
+BLD-2026-04418,multifamily_new,comments_issued,2026-03-01T16:00,,engineering,,
+BLD-2026-04418,multifamily_new,resubmitted,2026-03-20T11:00,,,,
+BLD-2026-04418,multifamily_new,approved,2026-04-15T15:00,,building,,
+BLD-2026-04419,single_family_new,submitted,2026-02-03T09:00,,,,
+BLD-2026-04419,single_family_new,not_a_real_event,2026-02-04T09:00,,,,

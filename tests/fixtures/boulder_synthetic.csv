@@ -1,0 +1,13 @@
+PermitID,PermitNum,MasterPermitNum,Description,AppliedDate,IssuedDate,CompletedDate,StatusCurrent,OriginalAddress,OriginalCity,OriginalState,OriginalZip,COBPIN,PermitType,PermitWorkType,EstProjectCost,NewHousingUnits,AffordableHousingUnits
+a1,PMT2025-00001,,New single-family dwelling,2025/01/06,2025/03/07,,Issued,100 EXAMPLE ST,BOULDER,CO,80302,146301000001,Residential New,New,450000.0,1,0
+a2,PMT2025-00002,,"New single-family dwelling,
+with a detached garage",2025/02/03,2025/04/04,,Issued,102 EXAMPLE ST,BOULDER,CO,80302,146301000002,Residential New,New,520000.0,1,0
+a3,PMT2025-00003,,New single-family dwelling,2025/03/03,,,In Review,104 EXAMPLE ST,BOULDER,CO,80302,,Residential New,New,,1,
+a4,PMT2025-00004,,Addition,2025/03/10,2025/03/01,,Issued,106 EXAMPLE ST,BOULDER,CO,80304,,Residential Addition,Residential Addition,,,
+a5,PMT2025-00005,,Addition,,2025/04/01,,Issued,108 EXAMPLE ST,BOULDER,CO,80304,,Residential Addition,Residential Addition,,,
+a6,PMT2025-00006,,Addition,2025/04/01,2025/04/21,,Issued,110 EXAMPLE ST,BOULDER,CO,80304,,Residential Addition,Residential Addition,,,
+a7,PMT2025-00006,,Addition,2025/04/02,2025/04/30,,Issued,112 EXAMPLE ST,BOULDER,CO,80304,,Residential Addition,Residential Addition,,,
+a7,PMT2025-00006,,Addition,2025/04/02,2025/04/30,,Issued,112 EXAMPLE ST,BOULDER,CO,80304,,Residential Addition,Residential Addition,,,
+a8,PMT2025-00008,,New single-family dwelling,04/07/2025,not a date,,Issued,114 EXAMPLE ST,BOULDER,CO,80302,,Residential New,New,,,
+a9,PMT2025-00009,,Entered in error,2025/05/01,2025/05/01,,Void,116 EXAMPLE ST,BOULDER,CO,80302,,Residential New,New,,,
+a10,PMT2025-00010,,Apartments,2025/05/05,,,In Review,200 EXAMPLE AVE,BOULDER,CO,80301,146301000010,Multi-Family,New,9000000.0,40,24
