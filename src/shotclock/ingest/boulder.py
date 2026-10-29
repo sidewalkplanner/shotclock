@@ -12,11 +12,10 @@ PermitNum can repeat; repeats get the PermitID appended so no record is lost.
 from __future__ import annotations
 
 import csv
-import re
 from collections import Counter
 from pathlib import Path
 
-from shotclock.ingest import ImportReport, parse_date
+from shotclock.ingest import ImportReport, parse_date, slug
 from shotclock.ledger import Case, CaseEvent, EventType, Holder, Jurisdiction
 
 SOURCE = "boulder-open-data"
@@ -38,10 +37,6 @@ ATTRIBUTE_COLUMNS = {
     "OriginalZip": "zip",
     "PermitID": "permit_guid",
 }
-
-
-def slug(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_") or "unknown"
 
 
 def read_boulder(path: Path) -> tuple[list[tuple[Case, list[CaseEvent]]], ImportReport]:

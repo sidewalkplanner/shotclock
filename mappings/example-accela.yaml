@@ -1,0 +1,35 @@
+# ILLUSTRATIVE ONLY. Column, task and status names are typical of Accela workflow-history
+# reports but vary by agency configuration. Copy this file per city and rewrite it against
+# that city's real export; `shotclock ingest workflow` lists every unmapped task/status.
+source: accela-example
+columns:
+  case_id: Record ID
+  case_type: Record Type
+  at: Status Date
+  task: Task
+  status: Status
+  department: Department
+attributes:
+  units: Housing Units
+case_types:
+  Building/Residential/New/NA: single_family_new
+  Building/Commercial/Alteration/NA: commercial_alteration
+events:
+  - when: {task: Intake, status: Received}
+    event: submitted
+  - when: {task: Completeness Check, status: Complete}
+    event: complete
+  - when: {task: Completeness Check, status: Incomplete}
+    event: incomplete
+  - when: {task: "* Review", status: [Corrections Required, Revisions Required]}
+    event: comments_issued
+  - when: {task: "* Review", status: [Approved, Approved with Conditions]}
+    ignore: true  # one department's sign-off; the case-level decision is Final Approval
+  - when: {task: Resubmittal, status: Received}
+    event: resubmitted
+  - when: {task: Final Approval, status: Approved}
+    event: approved
+  - when: {task: Final Approval, status: Denied}
+    event: denied
+  - when: {task: Issuance, status: Issued}
+    event: issued

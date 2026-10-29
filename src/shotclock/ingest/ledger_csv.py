@@ -14,17 +14,8 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from shotclock.ingest import ImportReport, parse_date
+from shotclock.ingest import ImportReport, parse_date, parse_value
 from shotclock.ledger import Case, CaseEvent, Jurisdiction
-
-
-def _value(raw: str) -> Any:
-    for cast in (int, float):
-        try:
-            return cast(raw)
-        except ValueError:
-            continue
-    return raw
 
 
 def read_ledger_csv(
@@ -59,7 +50,7 @@ def read_ledger_csv(
             case_type, attrs = cases.setdefault(case_id, (row["case_type"].strip(), {}))
             for col, raw in row.items():
                 if col.startswith("attr_") and raw and raw.strip() and col[5:] not in attrs:
-                    attrs[col[5:]] = _value(raw.strip())
+                    attrs[col[5:]] = parse_value(raw.strip())
             events.setdefault(case_id, []).append(event)
 
     out = [

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -40,3 +42,17 @@ def parse_date(value: str | None) -> datetime | None:
         except ValueError:
             continue
     raise ValueError(f"unrecognized date: {value!r}")
+
+
+def slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", value.strip().lower()).strip("_") or "unknown"
+
+
+def parse_value(raw: str) -> Any:
+    """Numbers become numbers so rule conditions like ``affordable_share >= 0.5`` work."""
+    for cast in (int, float):
+        try:
+            return cast(raw)
+        except ValueError:
+            continue
+    return raw

@@ -14,6 +14,7 @@ from shotclock.ingest import ImportReport
 from shotclock.ingest.boulder import JURISDICTION as BOULDER
 from shotclock.ingest.boulder import read_boulder
 from shotclock.ingest.ledger_csv import read_ledger_csv
+from shotclock.ingest.workflow import WorkflowMapping, read_workflow
 from shotclock.ledger import Jurisdiction
 from shotclock.metrics import elapsed_benchmark
 from shotclock.rules import RuleLibrary
@@ -61,13 +62,26 @@ def cmd_ingest_boulder(args: argparse.Namespace) -> None:
     _print_report(report)
 
 
-def cmd_ingest_ledger(args: argparse.Namespace) -> None:
-    j = Jurisdiction(
+def _jurisdiction(args: argparse.Namespace) -> Jurisdiction:
+    return Jurisdiction(
         jurisdiction=args.jurisdiction,
         name=args.name or args.jurisdiction,
         state=args.state.upper(),
     )
+
+
+def cmd_ingest_ledger(args: argparse.Namespace) -> None:
+    j = _jurisdiction(args)
     cases, report = read_ledger_csv(args.csv, j, source=args.source)
+    with Store(args.db) as store:
+        store.upsert_jurisdiction(j)
+        store.write_cases(cases)
+    _print_report(report)
+
+
+def cmd_ingest_workflow(args: argparse.Namespace) -> None:
+    j = _jurisdiction(args)
+    cases, report = read_workflow(args.csv, WorkflowMapping.load(args.mapping), j)
     with Store(args.db) as store:
         store.upsert_jurisdiction(j)
         store.write_cases(cases)
@@ -126,6 +140,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--source")
     sp.add_argument("--db", default=DEFAULT_DB)
     sp.set_defaults(func=cmd_ingest_ledger)
+
+    sp = isub.add_parser("workflow", help="task-history export, mapped by a YAML file")
+    sp.add_argument("csv", type=Path)
+    sp.add_argument("--mapping", type=Path, required=True, help="see mappings/")
+    sp.add_argument("--jurisdiction", required=True)
+    sp.add_argument("--state", required=True)
+    sp.add_argument("--name")
+    sp.add_argument("--db", default=DEFAULT_DB)
+    sp.set_defaults(func=cmd_ingest_workflow)
 
     sp = sub.add_parser("benchmark", help="elapsed-time percentiles by case type and year")
     sp.add_argument("--jurisdiction", required=True)
