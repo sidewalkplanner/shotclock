@@ -4,8 +4,9 @@ Each YAML file in ``data/`` encodes one law: which cases it covers, its clocks, 
 and what happens when a city misses it. Rules are versioned by effective date so a case is
 always measured against the law in force when it was submitted.
 
-Every rule carries ``verified``. Nothing unverified should appear in sales material or a
-public report; see ``verification_notes`` on each rule for what still needs checking.
+Every rule lists the claims it encodes as ``checks``. A rule is verified only when every
+check is confirmed or corrected against statute text with a pin cite. Nothing unverified
+should appear in sales material or a public report.
 """
 
 from __future__ import annotations
@@ -41,10 +42,14 @@ class Condition(BaseModel):
     op: str = Field(pattern=r"^(>=|>|<=|<|==|!=|in)$")
     value: Any
 
-    def holds(self, case: Case) -> bool:
+    def holds(self, case: Case) -> bool | None:
+        """None when the case lacks the attribute, so applicability cannot be decided."""
         if self.attribute not in case.attributes:
-            return False
-        return bool(_OPS[self.op](case.attributes[self.attribute], self.value))
+            return None
+        try:
+            return bool(_OPS[self.op](case.attributes[self.attribute], self.value))
+        except TypeError:  # e.g. a text value compared with a number
+            return None
 
 
 class AppliesTo(BaseModel):
@@ -53,10 +58,17 @@ class AppliesTo(BaseModel):
     case_types: list[str] = Field(default_factory=lambda: ["*"])
     conditions: list[Condition] = Field(default_factory=list)
 
-    def matches(self, case: Case) -> bool:
+    def matches(self, case: Case) -> bool | None:
+        """True or False, or None when a condition's attribute is missing from the case."""
         if "*" not in self.case_types and case.case_type not in self.case_types:
             return False
-        return all(c.holds(case) for c in self.conditions)
+        results = [c.holds(case) for c in self.conditions]
+        if False in results:
+            return False
+        return None if None in results else True
+
+    def missing_attributes(self, case: Case) -> list[str]:
+        return [c.attribute for c in self.conditions if c.holds(case) is None]
 
 
 class ClockKind(StrEnum):
@@ -105,6 +117,29 @@ class Penalty(BaseModel):
     fee_reduction_per_late_day: float | None = None
 
 
+class CheckStatus(StrEnum):
+    OPEN = "open"
+    CONFIRMED = "confirmed"  # statute text says what the rule encodes
+    CORRECTED = "corrected"  # the encoding was changed to match statute text
+
+
+class Check(BaseModel):
+    """One claim the rule encodes, to be checked against primary text."""
+
+    model_config = ConfigDict(frozen=True)
+
+    claim: str
+    status: CheckStatus = CheckStatus.OPEN
+    cite: str | None = None  # pin cite to the statute or bill section that settles it
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> Check:
+        if self.status is not CheckStatus.OPEN and not self.cite:
+            raise ValueError(f"check {self.claim!r} is {self.status.value} but has no cite")
+        return self
+
+
 class Rule(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -114,8 +149,7 @@ class Rule(BaseModel):
     citation: str
     effective_from: date
     effective_to: date | None = None
-    verified: bool = False
-    verification_notes: str = ""
+    checks: list[Check] = Field(min_length=1)
     sources: list[str] = Field(default_factory=list)
     applies_to: AppliesTo = Field(default_factory=AppliesTo)
     day_basis: DayBasis = DayBasis.CALENDAR
@@ -123,6 +157,14 @@ class Rule(BaseModel):
     clocks: list[Clock]
     penalty: Penalty | None = None
     transparency: str | None = None
+
+    @property
+    def verified(self) -> bool:
+        return all(c.status is not CheckStatus.OPEN for c in self.checks)
+
+    @property
+    def open_checks(self) -> list[Check]:
+        return [c for c in self.checks if c.status is CheckStatus.OPEN]
 
     def in_force(self, on: date) -> bool:
         return self.effective_from <= on and (self.effective_to is None or on < self.effective_to)
@@ -159,7 +201,15 @@ class RuleLibrary:
         return [
             r
             for r in self.for_state(case.state)
-            if r.in_force(submitted_on) and r.applies_to.matches(case)
+            if r.in_force(submitted_on) and r.applies_to.matches(case) is True
+        ]
+
+    def undetermined(self, case: Case, submitted_on: date) -> list[tuple[Rule, list[str]]]:
+        """Rules that may cover this case but need attributes the case lacks."""
+        return [
+            (r, r.applies_to.missing_attributes(case))
+            for r in self.for_state(case.state)
+            if r.in_force(submitted_on) and r.applies_to.matches(case) is None
         ]
 
     def get(self, rule_id: str) -> Rule:

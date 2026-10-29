@@ -3,13 +3,21 @@ state: FL
 name: Florida building permit processing deadlines
 citation: Fla. Stat. 553.792
 effective_from: 2023-07-01
-verified: false
-verification_notes: >
-  Encoded from the company thesis summary ("30 to 60 business days by permit type; 5-day
-  completeness notice"). Before use: confirm the effective date of the current text, the
-  exact permit-type and square-footage thresholds behind each deadline, how an applicant's
-  written agreement to extend changes the clock, and how the 20% reduction after resubmittal
-  is computed.
+checks:
+  - claim: Current deadline text in force for applications submitted on or after 2023-07-01
+  - claim: Day counts are business days, excluding the state's legal holidays
+    note: Confirm which holidays count; the holidays package includes Susan B. Anthony Day.
+  - claim: Completeness notice is due within 5 business days of submittal
+  - claim: Decision on a new single-family dwelling is due within 30 business days
+    note: Confirm any square-footage threshold that splits this category.
+  - claim: Decision on other permit types is due within 60 business days
+  - claim: The decision clock runs from submittal and pauses while the applicant holds
+      the file
+  - claim: Permit fee is reduced 10% for each business day the deadline is missed
+  - claim: The reduction is 20% per day after a resubmittal
+    note: Not yet encoded; the engine applies 10% throughout.
+  - claim: An applicant's written agreement extends the deadline
+    note: Not yet encoded.
 sources:
   - https://www.flsenate.gov/Laws/Statutes/2024/553.792
 applies_to:

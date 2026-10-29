@@ -14,7 +14,7 @@ from datetime import date, datetime, timedelta
 from html import escape
 
 from shotclock.clock import OPEN_STATUSES, ClockResult, ClockStatus, evaluate_case
-from shotclock.ledger import CLOSING_EVENTS, EventType, Holder, sort_events
+from shotclock.ledger import CLOSING_EVENTS, EventType, Holder, sort_events, submitted_at
 from shotclock.rules import RuleLibrary
 from shotclock.store import Store
 
@@ -104,13 +104,12 @@ def build_status(
             key=lambda c: (_URGENCY.index(c.status), c.days_remaining),
         )
         top = open_clocks[0] if open_clocks else None
-        submitted = next((e for e in events if e.event is EventType.SUBMITTED), events[0])
         rows.append(
             StatusRow(
                 case_id=case.case_id,
                 case_type=case.case_type.replace("_", " "),
                 address=case.attributes.get("address"),
-                submitted_on=submitted.at.date(),
+                submitted_on=submitted_at(events).date(),
                 stage=STAGE_LABELS.get(last.event, last.event.value),
                 stage_since=last.at.date(),
                 waiting_on=WAITING_ON.get(last.holder, "Not recorded"),

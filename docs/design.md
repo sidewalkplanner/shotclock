@@ -27,6 +27,26 @@ and sets `assumes_city_time` on the result. Never publish a city-time figure tha
   `overdue`, `paused` (applicant holds the file), `at_risk` (remaining days at or under 20% of
   the limit), or `on_track`, with a projected `due_date` when the city holds the file.
 - **Versioning.** A case is measured against rule versions in force on its submittal date.
+- **Applicability is three-valued.** A rule applies, does not apply, or cannot be decided
+  because the case lacks an attribute a condition needs (Prop 123 without
+  `affordable_share`). Undecided cases get no clock, but `shotclock clocks` reports how many
+  there are, so a missing field never silently hides a deadline.
+
+## Verifying a rule
+
+Each rule file lists every claim it encodes under `checks`. To verify one, read the
+primary text and set `status: confirmed` (the encoding is right) or `status: corrected`
+(you changed the encoding to match), with `cite:` pointing to the section that settles it.
+A closed check without a cite fails validation. A rule is verified only when all of its
+checks are closed; nothing else flips it. `shotclock rules --checks` is the to-do list.
+
+## Workflow exports
+
+City systems export task history, not ledger events. A mapping file per city
+(`mappings/*.yaml`) names the columns and lists task/status patterns that are case-level
+events. The import report counts every unmapped task/status pair: map each new export
+until the unmapped list holds only things that genuinely are not case events
+(inspections, fee postings), then mark those `ignore: true`.
 
 ## Decisions taken
 
@@ -39,8 +59,14 @@ and sets `assumes_city_time` on the result. Never publish a city-time figure tha
   count of permits with usable dates is itself a finding for the Front Range inventory.
 - **Benchmarks suppress small groups** (`--min-cases`, default 10) so one odd permit cannot
   define a city.
+- **The status page is static.** One self-contained HTML file plus `status.json`,
+  regenerated on each import, which a city can host anywhere with no procurement of
+  servers. A live TS frontend can read the same JSON later. It shows who must act next and
+  the most urgent open clock, never applicant names.
 
 ## Open questions (need statute text or a real export)
+
+Statute questions now live in each rule's `checks`. The ones that most affect the product:
 
 - Georgia SB 447: calendar vs business days; 14 vs 20 days for resubmittal review; whether
   the 45-day clock starts at submittal when a city never makes a completeness determination;
@@ -53,14 +79,26 @@ and sets `assumes_city_time` on the result. Never publish a city-time figure tha
   match a city's actual closures. A per-jurisdiction holiday calendar may be needed.
 - Boulder export: the data dictionary does not fix the permit-type column name, so the
   connector takes the first of several candidates. Confirm against a real download.
+- Parallel department review: the ledger is case-level, so one department's sign-off is
+  ignored and "comments issued" marks the consolidated letter. A city that sends each
+  department's comments separately needs a decision on when the city's clock stops.
+- Jurisdiction-level scope: Arizona applies only to cities of 30,000+ and Georgia's
+  transparency rule to 250+ permits a year. Rules need a jurisdiction condition (population,
+  `permits_per_year`) as well as case conditions.
+- Texas HB 14 and Tennessee's 2026 reform are not encoded: the thesis has no day counts for
+  either, so they need statute research first.
 
 ## Backlog, in order
 
+Done: ledger, clock engine, GA/FL/CO/AZ/CA rules (unverified), Boulder, ledger-CSV and
+workflow connectors, public status page.
+
 1. Run the Boulder connector on the real export and review the import report.
-2. Verify the GA, FL and CO rules against statute text; flip `verified` per rule.
-3. Add the remaining mandate-map rows: Texas HB 14 (third-party review after 15 days late),
-   Arizona SB 1162, Tennessee (deemed approval), California AB 253.
-4. First partner connector (Accela or Tyler workflow/task history) mapping to ledger CSV.
-5. Georgia public status view and deadline alerts over `shotclock clocks --open-only`.
-6. Hosted Postgres (Supabase) once a design partner's data arrives and GSA outside-activity
+2. Work the `rules --checks` list against statute text, Georgia first.
+3. Map the first real workflow export (records request or design partner) and record
+   hours spent, per the thesis's onboarding-cost metric.
+4. Jurisdiction-level rule conditions (population, permits per year).
+5. Deadline alerts: a daily digest of `at_risk` and `overdue` clocks for city staff.
+6. Texas and Tennessee rules after statute research.
+7. Hosted Postgres (Supabase) once a design partner's data arrives and GSA outside-activity
    approval is in hand.

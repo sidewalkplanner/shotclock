@@ -15,7 +15,7 @@ from shotclock.ingest.boulder import JURISDICTION as BOULDER
 from shotclock.ingest.boulder import read_boulder
 from shotclock.ingest.ledger_csv import read_ledger_csv
 from shotclock.ingest.workflow import WorkflowMapping, read_workflow
-from shotclock.ledger import Jurisdiction
+from shotclock.ledger import Jurisdiction, submitted_at
 from shotclock.metrics import elapsed_benchmark
 from shotclock.rules import RuleLibrary
 from shotclock.status import build_status, render_html, to_json
@@ -48,11 +48,15 @@ def _write_rows(rows: list[dict], out: Path | None) -> None:
 
 def cmd_rules(args: argparse.Namespace) -> None:
     for r in RuleLibrary.load().rules:
-        flag = "verified" if r.verified else "UNVERIFIED"
+        done = len(r.checks) - len(r.open_checks)
+        flag = "verified" if r.verified else f"{done}/{len(r.checks)} checked"
         clocks = ", ".join(c.id for c in r.clocks)
-        print(
-            f"{r.id:<16} {r.state}  from {r.effective_from}  {flag:<10}  {r.citation}  [{clocks}]"
-        )
+        print(f"{r.id:<16} {r.state}  from {r.effective_from}  {flag:<12} {r.citation}  [{clocks}]")
+        if args.checks:
+            for c in r.open_checks:
+                print(f"    [ ] {c.claim}")
+                if c.note:
+                    print(f"        {c.note}")
 
 
 def cmd_ingest_boulder(args: argparse.Namespace) -> None:
@@ -106,13 +110,20 @@ def cmd_clocks(args: argparse.Namespace) -> None:
             if args.case
             else store.iter_cases(args.jurisdiction)
         )
+        undetermined: dict[tuple[str, str], int] = {}
         for case, events in cases:
+            if submitted := submitted_at(events):
+                for rule, attrs in library.undetermined(case, submitted.date()):
+                    for attr in attrs:
+                        undetermined[(rule.id, attr)] = undetermined.get((rule.id, attr), 0) + 1
             for r in evaluate_case(case, events, library, as_of):
                 if args.open_only and r.status not in OPEN_STATUSES:
                     continue
                 rows.append(
                     {k: (v.value if hasattr(v, "value") else v) for k, v in asdict(r).items()}
                 )
+    for (rule_id, attr), n in sorted(undetermined.items()):
+        print(f"# {n} cases may fall under {rule_id} but lack '{attr}'", file=sys.stderr)
     if any(not r["rule_verified"] for r in rows):
         print("# includes UNVERIFIED rules: internal use only", file=sys.stderr)
     _write_rows(rows, args.out)
@@ -135,6 +146,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("rules", help="list the rule library")
+    sp.add_argument("--checks", action="store_true", help="list open verification checks")
     sp.set_defaults(func=cmd_rules)
 
     ingest = sub.add_parser("ingest", help="load a source export into the ledger")

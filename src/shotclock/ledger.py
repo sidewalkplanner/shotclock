@@ -99,6 +99,14 @@ def sort_events(events: Iterable[CaseEvent]) -> list[CaseEvent]:
     return sorted(events, key=lambda e: e.at)
 
 
+def submitted_at(events: Iterable[CaseEvent]) -> datetime | None:
+    """When the case was submitted: the first ``submitted`` event, else the first event."""
+    ordered = sort_events(events)
+    if not ordered:
+        return None
+    return next((e.at for e in ordered if e.event is EventType.SUBMITTED), ordered[0].at)
+
+
 def holder_intervals(
     events: Iterable[CaseEvent], until: datetime
 ) -> list[tuple[Holder, datetime, datetime, str | None]]:

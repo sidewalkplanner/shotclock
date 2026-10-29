@@ -15,7 +15,15 @@ from datetime import date, datetime
 from enum import StrEnum
 
 from shotclock.days import DayBasis, add_days, count_days, covered_dates
-from shotclock.ledger import Case, CaseEvent, EventType, Holder, holder_intervals, sort_events
+from shotclock.ledger import (
+    Case,
+    CaseEvent,
+    EventType,
+    Holder,
+    holder_intervals,
+    sort_events,
+    submitted_at,
+)
 from shotclock.rules import Clock, ClockKind, Rule, RuleLibrary
 
 
@@ -174,11 +182,11 @@ def evaluate_case(
 ) -> list[ClockResult]:
     """Every statutory clock that applies to this case, as of ``as_of``."""
     ordered = sort_events(events)
-    if not ordered:
+    submitted = submitted_at(ordered)
+    if submitted is None:
         return []
-    submitted = next((e for e in ordered if e.event is EventType.SUBMITTED), ordered[0])
     out: list[ClockResult] = []
-    for rule in library.applicable(case, submitted.at.date()):
+    for rule in library.applicable(case, submitted.date()):
         for clock in rule.clocks:
             out.extend(evaluate_clock(case, ordered, rule, clock, as_of, at_risk_fraction))
     return out

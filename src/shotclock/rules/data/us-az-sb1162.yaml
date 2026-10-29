@@ -1,0 +1,48 @@
+id: us-az-sb1162
+state: AZ
+name: Arizona zoning application shot clock
+citation: SB 1162 (2024)
+effective_from: 2025-01-01
+checks:
+  - claim: In force for applications submitted on or after 2025-01-01
+  - claim: Day counts are calendar days
+  - claim: Completeness determination is due within 30 days of submittal
+  - claim: Decision on a zoning application is due within 180 days
+  - claim: The 180 days start once the application is deemed administratively complete
+  - claim: Applies only to municipalities with a population of 30,000 or more
+    note: Not encoded per jurisdiction yet; check before loading a smaller city.
+  - claim: The applicant's completeness resubmittal is reviewed within 15 days
+    note: Not yet encoded.
+  - claim: A one-time 30-day extension for extenuating circumstances, and further 30-day
+      extensions at the applicant's request
+    note: Not yet encoded.
+  - claim: Land in a district of historical significance is exempt from the 180 days
+    note: Not yet encoded.
+  - claim: Time with the applicant does not count against the city
+  - claim: Covers the case types listed under applies_to
+    note: Our case types are normalized names; confirm which application types the statute
+      means by "zoning applications".
+  - claim: If the deadline is missed, the application must be denied and restarted
+    note: As summarized in the company thesis. Confirm the consequence and who chooses it.
+  - claim: Cities report annually to the Arizona Department of Housing
+sources:
+  - https://www.furmancenter.org/enacted-legislation/sb-1162/
+  - https://www.yourvalley.net/cave-creek-carefree-independent/stories/clock-will-be-ticking-on-development,538438
+applies_to:
+  case_types: [rezoning, zoning_amendment, zoning_variance, conditional_use]
+day_basis: calendar
+pause_when_applicant_holds: true
+clocks:
+  - id: completeness
+    label: Completeness determination
+    start: [submitted]
+    stop: [complete, incomplete]
+    limit_days: 30
+  - id: decision
+    label: Decision on a zoning application
+    start: [complete]
+    stop: [approved, denied]
+    limit_days: 180
+penalty:
+  summary: Application must be denied and restarted.
+transparency: Annual report to the Arizona Department of Housing.

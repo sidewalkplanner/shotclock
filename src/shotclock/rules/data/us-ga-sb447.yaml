@@ -3,15 +3,21 @@ state: GA
 name: Georgia permit shot clock
 citation: SB 447 (2026)
 effective_from: 2026-07-01
-verified: false
-verification_notes: >
-  Encoded from secondary sources (vendor and law-firm summaries). Open questions to settle
-  against the enrolled bill text before any public use:
-  (1) calendar vs business days for each clock;
-  (2) resubmittal review is 20 days in some summaries and 14 in others;
-  (3) whether the 45-day clock starts at the completeness determination or at submittal when
-  the city never makes one;
-  (4) exactly which permit types are covered (land disturbance, building, both).
+checks:
+  - claim: In force for applications submitted on or after 2026-07-01
+  - claim: Day counts are calendar days (not business days) for every clock
+    note: Secondary sources disagree on this.
+  - claim: Completeness determination is due within 5 days of submittal
+  - claim: First review is due within 45 days of the completeness determination
+    note: Also settle when the 45 days start if the city never makes a determination.
+  - claim: Second review round is due within 20 days of resubmittal
+    note: Some summaries say 14 days.
+  - claim: Third and later review rounds are due within 14 days of resubmittal
+  - claim: Time with the applicant does not count against the city
+  - claim: Covers every permit type the city issues
+    note: Summaries mention land-disturbance and building permits; confirm the scope.
+  - claim: Real-time public status required from 2028-01-01 for jurisdictions issuing 250+
+      building permits a year
 sources:
   - https://www.accela.com/?p=16430
   - https://www.thompsonhine.com/insights/georgias-senate-bill-447-new-permitting-rules-for-real-estate-developers/
